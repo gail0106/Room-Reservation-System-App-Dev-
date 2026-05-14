@@ -16,4 +16,5 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view()),
 
     path('profile/', ProfileView.as_view()),
+    # path('api/token/', TokenObtainPairView.as_view()),
 ]

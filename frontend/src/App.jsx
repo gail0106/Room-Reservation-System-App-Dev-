@@ -8,6 +8,8 @@ import AdminReservations from "./pages/AdminReservations";
 import Calendar from "./pages/Calendar";
 import Notifications from "./pages/Notifications";
 
+import ProtectedRoute from "./routes/ProtectedRoute";
+
 function App() {
 
   return (
@@ -18,17 +20,59 @@ function App() {
 
       <Route path="/register" element={<Register />} />
 
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/rooms" element={<Rooms />} />
+      <Route
+        path="/rooms"
+        element={
+          <ProtectedRoute>
+            <Rooms />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/reservations" element={<Reservations />} />
+      <Route
+        path="/reservations"
+        element={
+          <ProtectedRoute>
+            <Reservations />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/adminreservations" element={<AdminReservations />} />
+      <Route
+        path="/admin-reservations"
+        element={
+          <ProtectedRoute>
+            <AdminReservations />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/calendar" element={<Calendar />} />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <Calendar />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/notifications" element={<Notifications />} />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
 
     </Routes>
 
