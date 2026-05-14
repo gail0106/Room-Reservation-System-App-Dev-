@@ -4,6 +4,9 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Rooms from "./pages/Rooms";
 import Reservations from "./pages/Reservations";
+import AdminReservations from "./pages/AdminReservations";
+import Calendar from "./pages/Calendar";
+import Notifications from "./pages/Notifications";
 
 function App() {
 
@@ -20,6 +23,12 @@ function App() {
       <Route path="/rooms" element={<Rooms />} />
 
       <Route path="/reservations" element={<Reservations />} />
+
+      <Route path="/adminreservations" element={<AdminReservations />} />
+
+      <Route path="/calendar" element={<Calendar />} />
+
+      <Route path="/notifications" element={<Notifications />} />
 
     </Routes>
 
