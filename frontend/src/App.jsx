@@ -48,7 +48,7 @@ function App() {
       />
 
       <Route
-        path="/admin-reservations"
+        path="/admin/reservations"
         element={
           <ProtectedRoute>
             <AdminReservations />
