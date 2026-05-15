@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
 
 export default function Login() {
@@ -9,6 +9,9 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const successMessage = location.state?.message;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -43,6 +46,14 @@ export default function Login() {
             <p style={{ fontSize: 12, color: "#888", margin: 0 }}>Room Reservation System</p>
           </div>
         </div>
+
+        {/* Success message after registration */}
+        {successMessage && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#EDFAF3", border: "0.5px solid #A8DFC1", borderRadius: 8, padding: "8px 12px", marginBottom: "1rem" }}>
+            <i className="ti ti-circle-check" style={{ fontSize: 16, color: "#1E7D4B", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: "#1E7D4B" }}>{successMessage}</span>
+          </div>
+        )}
 
         {/* Error */}
         {error && (
@@ -96,6 +107,21 @@ export default function Login() {
         </form>
 
         <hr style={{ border: "none", borderTop: "0.5px solid #e0e0da", margin: "1.25rem 0" }} />
+
+        {/* Registration Link */}
+        <p style={{ fontSize: 12, color: "#666", textAlign: "center", margin: "0 0 0.75rem" }}>
+          Don't have an account?{" "}
+          
+          <a href="/register"
+            onClick={(e) => { e.preventDefault(); navigate("/register"); }}
+            style={{ color: "#185FA5", fontWeight: 500, textDecoration: "none" }}
+            onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
+            onMouseLeave={(e) => e.target.style.textDecoration = "none"}
+          >
+            Create one here
+          </a>
+        </p>
+
         <p style={{ fontSize: 11, color: "#aaa", textAlign: "center", margin: 0 }}>
           Contact your administrator if you need access.
         </p>
