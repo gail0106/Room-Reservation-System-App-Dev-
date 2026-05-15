@@ -13,24 +13,31 @@ export default function Login() {
 
   const successMessage = location.state?.message;
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!username || !password) {
-      setError("Please fill in all fields.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    try {
-      const response = await API.post("/token/", { username, password });
-      localStorage.setItem("token", response.data.access);
-      navigate("/dashboard");
-    } catch (err) {
-      setError("Invalid username or password.");
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleLogin = async (e) => {
+  e.preventDefault();
+  if (!username || !password) {
+    setError("Please fill in all fields.");
+    return;
+  }
+  setLoading(true);
+  setError("");
+  try {
+    const response = await API.post("auth/login/", { username, password });
+
+    const user = response.data.data.user;
+
+    localStorage.clear();
+    localStorage.setItem("token", response.data.data.tokens.access);
+    localStorage.setItem("role", user.role);
+    localStorage.setItem("username", user.username);
+
+    navigate("/dashboard");
+  } catch (err) {
+    setError("Invalid username or password.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f3", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>

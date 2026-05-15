@@ -7,75 +7,29 @@ import Reservations from "./pages/Reservations";
 import AdminReservations from "./pages/AdminReservations";
 import Calendar from "./pages/Calendar";
 import Notifications from "./pages/Notifications";
-
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
-
   return (
-
     <Routes>
-
+      {/* Public */}
       <Route path="/" element={<Login />} />
-
       <Route path="/register" element={<Register />} />
 
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      {/* All logged-in users */}
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
+      <Route path="/reservations" element={<ProtectedRoute><Reservations /></ProtectedRoute>} />
+      <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
-      <Route
-        path="/rooms"
-        element={
-          <ProtectedRoute>
-            <Rooms />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/reservations"
-        element={
-          <ProtectedRoute>
-            <Reservations />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin/reservations"
-        element={
-          <ProtectedRoute>
-            <AdminReservations />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/calendar"
-        element={
-          <ProtectedRoute>
-            <Calendar />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/notifications"
-        element={
-          <ProtectedRoute>
-            <Notifications />
-          </ProtectedRoute>
-        }
-      />
-
+      {/* Admin only */}
+      <Route path="/admin/reservations" element={
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AdminReservations />
+        </ProtectedRoute>
+      } />
     </Routes>
-
   );
 }
 

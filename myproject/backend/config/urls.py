@@ -34,5 +34,4 @@ urlpatterns = [
     path('api/reservations/', include('apps.reservations.urls')),
 
     path('api/notifications/', include('apps.notifications.urls')),
-    path('api/token/', TokenObtainPairView.as_view()),#pinalit nong inaayos yung login
 ]
