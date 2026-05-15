@@ -142,7 +142,7 @@ export default function Register() {
             onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
             onMouseLeave={(e) => e.target.style.textDecoration = "none"}
           >
-            Sign in here
+            Sign in
           </a>
         </p>
 

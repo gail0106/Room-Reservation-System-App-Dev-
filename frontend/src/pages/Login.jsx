@@ -118,7 +118,7 @@ export default function Login() {
             onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
             onMouseLeave={(e) => e.target.style.textDecoration = "none"}
           >
-            Create one here
+            Create an account
           </a>
         </p>
 
