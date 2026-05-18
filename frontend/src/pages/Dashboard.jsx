@@ -10,8 +10,8 @@ const iconColors = {
   red:    { bg: "#FCEBEB", color: "#A32D2D" },
 };
 
-const statusDot = { confirmed: "#1D9E75", pending: "#BA7517", rejected: "#A32D2D", completed: "#378ADD" };
-const statusLabel = { confirmed: "Confirmed", pending: "Pending", rejected: "Rejected", completed: "Completed" };
+const statusDot = { approved: "#1D9E75", pending: "#BA7517", rejected: "#A32D2D", completed: "#378ADD", cancelled: "#D94F4F" };
+const statusLabel = { approved: "Approved", pending: "Pending", rejected: "Rejected", completed: "Completed", cancelled: "cancelled" };
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -37,8 +37,8 @@ export default function Dashboard() {
         const reservations = resRes.data?.data ?? resRes.data ?? [];
 
         const today = new Date().toDateString();
-        const myRes = isAdmin ? reservations : reservations.filter(r => r.user === username);
-        const pending = myRes.filter(r => r.status === "pending").length;
+        const myRes = reservations;        
+        const pending = reservations.filter( r => r.status === "pending").length;        
         const todayBookings = reservations.filter(r => new Date(r.start_time).toDateString() === today).length;
 
         setStats({

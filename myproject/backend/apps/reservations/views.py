@@ -1,27 +1,33 @@
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.exceptions import ValidationError
-
-from .models import Reservation
-from .serializers import ReservationSerializer
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from apps.accounts.permissions import IsAdmin
 
 from django.utils.timezone import now
-from .serializers import CalendarReservationSerializer
+
+from .models import Reservation
+from .serializers import ReservationSerializer, CalendarReservationSerializer
+
+from apps.accounts.permissions import IsAdmin
 from apps.notifications.services import create_notification
 
+from rest_framework.decorators import api_view, permission_classes
+
+from apps.notifications.serializers import NotificationSerializer
+
+
+# =========================
+# LIST + CREATE RESERVATION
+# =========================
 class ReservationListCreateView(generics.ListCreateAPIView):
 
     serializer_class = ReservationSerializer
-
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-
         user = self.request.user
 
         if user.role == 'admin':
@@ -54,7 +60,7 @@ class ReservationListCreateView(generics.ListCreateAPIView):
         if room_conflict:
             raise ValidationError({"error": "Room already booked."})
 
-        # 4. USER conflict (NEW RULE)
+        # 4. user conflict
         user_conflict = Reservation.objects.filter(
             user=self.request.user,
             status='approved',
@@ -67,22 +73,23 @@ class ReservationListCreateView(generics.ListCreateAPIView):
                 "error": "You already have a reservation at this time."
             })
 
-        serializer.save(user=self.request.user)
+        reservation = serializer.save(user=self.request.user)
 
+        # notification (safe wrapper)
         try:
-            print("[DEBUG] About to call create_notification")
             create_notification(
                 user=self.request.user,
                 title="Reservation Submitted",
-                message="Your reservation request is pending approval."
+                message="Your reservation request is pending approval.",
+                notif_type="pending"
             )
-            print("[DEBUG] create_notification completed successfully")
         except Exception as e:
-            print(f"[DEBUG] FAILED: {type(e).__name__}: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"[NOTIF ERROR] {e}")
 
 
+# =========================
+# APPROVE / REJECT RESERVATION (ADMIN)
+# =========================
 class ApproveReservationView(APIView):
 
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -93,14 +100,12 @@ class ApproveReservationView(APIView):
             reservation = Reservation.objects.get(pk=pk)
 
         except Reservation.DoesNotExist:
-
             return Response(
                 {"error": "Reservation not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
         if reservation.status != 'pending':
-
             return Response(
                 {"error": "Only pending reservations can be modified"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -109,7 +114,6 @@ class ApproveReservationView(APIView):
         new_status = request.data.get("status")
 
         if new_status not in ['approved', 'rejected']:
-
             return Response(
                 {"error": "Invalid status"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -118,18 +122,25 @@ class ApproveReservationView(APIView):
         reservation.status = new_status
         reservation.save()
 
-        print("CREATING NOTIFICATION")
-
         create_notification(
             user=reservation.user,
-            title=f"Reservation {new_status.title()}",
-            message=f"Your reservation for {reservation.room.name} was {new_status}."
+            title="Reservation Updated",
+            message=f"Your reservation for {reservation.room.name} was {new_status}.",
+            notif_type=new_status,
+            reservation=reservation
         )
 
+        serializer = ReservationSerializer(reservation)
+
         return Response({
-            "message": f"Reservation {new_status} successfully"
+            "message": f"Reservation {new_status} successfully",
+            "data": serializer.data
         })
-    
+
+
+# =========================
+# CANCEL RESERVATION (USER)
+# =========================
 class CancelReservationView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -140,34 +151,40 @@ class CancelReservationView(APIView):
             reservation = Reservation.objects.get(pk=pk, user=request.user)
 
         except Reservation.DoesNotExist:
-            return Response({"error": "Not found"}, status=404)
-
-        if reservation.status in ['pending', 'approved']:
-            reservation.status = 'cancelled'
-            reservation.save()
-
-            create_notification(
-                user=request.user,
-                title="Reservation Cancelled",
-                message=f"Your reservation for {reservation.room.name} was cancelled."
+            return Response(
+                {"error": "Not found"},
+                status=status.HTTP_404_NOT_FOUND
             )
 
-            return Response({"message": "Reservation cancelled"})
+        if reservation.status not in ['pending', 'approved']:
+            return Response(
+                {"error": "Only pending or approved reservations can be cancelled"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        return Response(
-            {"error": "Cannot cancel this reservation"},
-            status=400
+        reservation.status = 'cancelled'
+        reservation.save()
+
+        create_notification(
+            user=request.user,
+            title="Reservation Cancelled",
+            message=f"Your reservation for {reservation.room.name} was cancelled.",
+            notif_type="cancelled"
         )
-    
+
+        return Response({"message": "Reservation cancelled"})
+
+
+# =========================
+# CALENDAR VIEW
+# =========================
 class ReservationCalendarView(APIView):
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
 
-        reservations = Reservation.objects.filter(
-            status='approved'
-        )
+        reservations = Reservation.objects.filter(status='approved')
 
         serializer = CalendarReservationSerializer(
             reservations,
@@ -175,3 +192,64 @@ class ReservationCalendarView(APIView):
         )
 
         return Response(serializer.data)
+'''    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def notification_list(request):
+
+    notifications = Notification.objects.filter(
+        user=request.user
+    ).order_by("-created_at")
+
+    serializer = NotificationSerializer(
+        notifications,
+        many=True
+    )
+
+    return Response(serializer.data)
+
+'''
+
+@api_view(["PATCH"])
+@permission_classes([IsAdminUser])
+def approve_reservation(request, pk):
+
+    try:
+        reservation = Reservation.objects.get(id=pk)
+    except Reservation.DoesNotExist:
+        return Response(
+            {"error": "Reservation not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    new_status = request.data.get("status")
+
+    if new_status not in ["approved", "rejected"]:
+        return Response(
+            {"error": "Invalid status"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if reservation.status != "pending":
+        return Response(
+            {"error": "Only pending reservations can be modified"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    reservation.status = new_status
+    reservation.save()
+
+    create_notification(
+        user=reservation.user,
+        title="Reservation Updated",
+        message=f"Your reservation for {reservation.room.name} was {new_status}.",
+        notif_type=new_status,
+        reservation=reservation
+    )
+
+    serializer = ReservationSerializer(reservation)
+
+    return Response({
+        "message": "Updated",
+        "data": serializer.data
+    })

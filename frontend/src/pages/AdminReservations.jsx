@@ -7,6 +7,8 @@ const STATUS_STYLES = {
   approved:  { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", label: "Approved" },
   rejected:  { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", label: "Rejected" },
   completed: { bg: "#E6F1FB", color: "#185FA5", border: "#A8CCF0", label: "Completed" },
+  cancelled: { bg: "#E6F1FB", color: "#A32D2D", border: "#F7C1C1", label: "Cancelled" },
+
 };
 
 const TABS = ["all", "pending", "approved", "rejected"];

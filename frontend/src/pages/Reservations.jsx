@@ -3,10 +3,12 @@ import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
 const statusConfig = {
-  confirmed: { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", dot: "#1D9E75", label: "Confirmed" },
+  approved: { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", dot: "#1D9E75", label: "Confirmed" },
   pending:   { bg: "#FAEEDA", color: "#854F0B", border: "#F0CA8A", dot: "#BA7517", label: "Pending"   },
   completed: { bg: "#E6F1FB", color: "#185FA5", border: "#A8C8F0", dot: "#378ADD", label: "Completed" },
-  cancelled: { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", dot: "#D94F4F", label: "Cancelled" },
+  rejected: { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", dot: "#D94F4F", label: "Cancelled" },
+  cancelled: { bg: "#E6F1FB", color: "#A32D2D", border: "#F7C1C1", dot: "#D94F4F", label: "Cancelled" },
+
 };
 
 export default function MyReservations() {

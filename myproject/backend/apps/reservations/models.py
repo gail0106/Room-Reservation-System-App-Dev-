@@ -8,6 +8,7 @@ class Reservation(models.Model):
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     )
 
