@@ -3,12 +3,11 @@ import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
 const statusConfig = {
-  approved: { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", dot: "#1D9E75", label: "Confirmed" },
+  approved:  { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", dot: "#1D9E75", label: "Approved"  },
   pending:   { bg: "#FAEEDA", color: "#854F0B", border: "#F0CA8A", dot: "#BA7517", label: "Pending"   },
   completed: { bg: "#E6F1FB", color: "#185FA5", border: "#A8C8F0", dot: "#378ADD", label: "Completed" },
-  rejected: { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", dot: "#D94F4F", label: "Cancelled" },
-  cancelled: { bg: "#E6F1FB", color: "#A32D2D", border: "#F7C1C1", dot: "#D94F4F", label: "Cancelled" },
-
+  rejected:  { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", dot: "#D94F4F", label: "Rejected"  },
+  cancelled: { bg: "#F3F3F3", color: "#666666", border: "#D0D0D0", dot: "#999999", label: "Cancelled" },
 };
 
 export default function MyReservations() {
@@ -22,8 +21,15 @@ export default function MyReservations() {
   const fetchReservations = async () => {
     try {
       const res = await API.get("/reservations/");
-      setReservations(res.data);
-    } catch (err) {
+      const data = res.data?.data ?? res.data ?? [];
+
+      // ✅ Sort latest start_time first
+      const sorted = [...data].sort(
+        (a, b) => new Date(b.start_time) - new Date(a.start_time)
+      );
+
+      setReservations(sorted);
+    } catch {
       setError("Failed to load reservations.");
     } finally {
       setLoading(false);
@@ -105,11 +111,16 @@ export default function MyReservations() {
               return (
                 <div
                   key={res.id}
-                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "1rem 1.25rem", borderBottom: i < reservations.length - 1 ? "0.5px solid #e0e0da" : "none" }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    padding: "1rem 1.25rem",
+                    borderBottom: i < reservations.length - 1 ? "0.5px solid #e0e0da" : "none",
+                    borderLeft: `3px solid ${status.dot}`,
+                  }}
                 >
                   {/* Icon */}
-                  <div style={{ width: 38, height: 38, borderRadius: 8, background: "#E6F1FB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <i className="ti ti-building" style={{ fontSize: 18, color: "#185FA5" }} />
+                  <div style={{ width: 38, height: 38, borderRadius: 8, background: status.bg, border: `0.5px solid ${status.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <i className="ti ti-building" style={{ fontSize: 18, color: status.color }} />
                   </div>
 
                   {/* Details */}
@@ -119,12 +130,18 @@ export default function MyReservations() {
                     </p>
                     <p style={{ fontSize: 11, color: "#888", margin: 0 }}>
                       <i className="ti ti-clock" style={{ fontSize: 11, marginRight: 4 }} />
-                      {new Date(res.start_time).toLocaleString()} — {new Date(res.end_time).toLocaleString()}
+                      {new Date(res.start_time).toLocaleString()} — {new Date(res.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
 
                   {/* Status badge */}
-                  <span style={{ fontSize: 11, fontWeight: 500, background: status.bg, color: status.color, border: `0.5px solid ${status.border}`, borderRadius: 20, padding: "3px 10px", flexShrink: 0, display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 500,
+                    background: status.bg, color: status.color,
+                    border: `0.5px solid ${status.border}`,
+                    borderRadius: 20, padding: "3px 10px",
+                    flexShrink: 0, display: "flex", alignItems: "center", gap: 5
+                  }}>
                     <span style={{ width: 6, height: 6, borderRadius: "50%", background: status.dot, display: "inline-block" }} />
                     {status.label}
                   </span>
