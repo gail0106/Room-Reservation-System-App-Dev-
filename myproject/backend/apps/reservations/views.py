@@ -14,9 +14,6 @@ from .serializers import ReservationSerializer, CalendarReservationSerializer
 from apps.accounts.permissions import IsAdmin
 from apps.notifications.services import create_notification
 
-from rest_framework.decorators import api_view, permission_classes
-
-from apps.notifications.serializers import NotificationSerializer
 
 
 # =========================
@@ -192,64 +189,3 @@ class ReservationCalendarView(APIView):
         )
 
         return Response(serializer.data)
-'''    
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def notification_list(request):
-
-    notifications = Notification.objects.filter(
-        user=request.user
-    ).order_by("-created_at")
-
-    serializer = NotificationSerializer(
-        notifications,
-        many=True
-    )
-
-    return Response(serializer.data)
-
-'''
-
-@api_view(["PATCH"])
-@permission_classes([IsAdminUser])
-def approve_reservation(request, pk):
-
-    try:
-        reservation = Reservation.objects.get(id=pk)
-    except Reservation.DoesNotExist:
-        return Response(
-            {"error": "Reservation not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    new_status = request.data.get("status")
-
-    if new_status not in ["approved", "rejected"]:
-        return Response(
-            {"error": "Invalid status"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if reservation.status != "pending":
-        return Response(
-            {"error": "Only pending reservations can be modified"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    reservation.status = new_status
-    reservation.save()
-
-    create_notification(
-        user=reservation.user,
-        title="Reservation Updated",
-        message=f"Your reservation for {reservation.room.name} was {new_status}.",
-        notif_type=new_status,
-        reservation=reservation
-    )
-
-    serializer = ReservationSerializer(reservation)
-
-    return Response({
-        "message": "Updated",
-        "data": serializer.data
-    })
