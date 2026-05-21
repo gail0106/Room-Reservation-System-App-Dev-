@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-from decouple import config
+from decouple import config # type: ignore
 
 DATABASES = {
     'default': {
