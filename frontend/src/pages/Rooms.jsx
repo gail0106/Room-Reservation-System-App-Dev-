@@ -16,14 +16,9 @@ export default function Rooms() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // ---------------------------------------------------------------------------
-  // fetchRooms — extracted from useEffect so it can be called anywhere
-  // (e.g. after a successful reservation to refresh statuses)
-  // ---------------------------------------------------------------------------
   const fetchRooms = useCallback(async () => {
     try {
       const response = await API.get("/rooms/");
-      // Support both { data: [...] } and plain [...] response shapes
       const data = response.data?.data ?? response.data ?? [];
       setRooms(data);
     } catch {
@@ -33,25 +28,12 @@ export default function Rooms() {
     }
   }, []);
 
-  // ---------------------------------------------------------------------------
-  // On mount: fetch rooms once, then poll every 30 s so the status badge
-  // updates automatically even if another user makes a reservation.
-  // The cleanup function clears the interval when the component unmounts.
-  // ---------------------------------------------------------------------------
   useEffect(() => {
     fetchRooms();
-
-    const interval = setInterval(() => {
-      fetchRooms();
-    }, 30000); // 30 000 ms = 30 seconds
-
-    return () => clearInterval(interval); // cleanup on unmount
+    const interval = setInterval(() => { fetchRooms(); }, 30000);
+    return () => clearInterval(interval);
   }, [fetchRooms]);
 
-  // ---------------------------------------------------------------------------
-  // Toggle the inline reservation form for a room.
-  // Clicking an already-selected room collapses the form.
-  // ---------------------------------------------------------------------------
   const handleRoomClick = (room) => {
     if (selectedRoom?.id === room.id) {
       setSelectedRoom(null);
@@ -64,28 +46,20 @@ export default function Rooms() {
     setFormError("");
   };
 
-  // ---------------------------------------------------------------------------
-  // Submit a reservation, then re-fetch rooms so the status badge updates
-  // immediately without waiting for the next 30-second poll.
-  // ---------------------------------------------------------------------------
   const handleReserve = async (e) => {
     e.preventDefault();
     setMessage("");
     setFormError("");
     setSubmitting(true);
-
     try {
       await API.post("/reservations/", {
         room: selectedRoom.id,
         start_time: startTime,
         end_time: endTime,
       });
-
       setMessage("Reservation submitted! Waiting for approval.");
       setStartTime("");
       setEndTime("");
-
-      // Re-fetch rooms so status badges reflect the new reservation right away
       fetchRooms();
     } catch (err) {
       setFormError(
@@ -98,11 +72,6 @@ export default function Rooms() {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Helpers for the status badge — driven by room.status from the serializer
-  // ('available' | 'occupied'). Previously used room.is_available (boolean)
-  // which no longer exists on the response.
-  // ---------------------------------------------------------------------------
   const isOccupied = (room) => room.status === "occupied";
 
   const badgeStyles = (room) => ({
@@ -110,90 +79,59 @@ export default function Rooms() {
     fontWeight: 500,
     padding: "3px 8px",
     borderRadius: 20,
-    background: isOccupied(room) ? "#FFF4E5" : "#EDFAF3",
-    color: isOccupied(room) ? "#854F0B" : "#1E7D4B",
-    border: `0.5px solid ${isOccupied(room) ? "#F5D9A8" : "#A8DFC1"}`,
+    background: isOccupied(room) ? "#F5E8E8" : "#FDF5DF",
+    color: isOccupied(room) ? "#8B0000" : "#7A5500",
+    border: `0.5px solid ${isOccupied(room) ? "#D9A0A0" : "#D9C070"}`,
   });
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
   return (
-    <div
-      style={{
-        fontFamily: "sans-serif",
-        minHeight: "100vh",
-        background: "#f5f5f3",
-      }}
-    >
-      {/* ── Header ── */}
-      <header
-        style={{
-          background: "#fff",
-          borderBottom: "0.5px solid #e0e0da",
-          padding: "0.85rem 1.5rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+    <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'); * { font-family: 'Poppins', sans-serif; }`}</style>
+
+      {/* Header */}
+      <header style={{
+        background: "#8B0000",
+        borderBottom: "3px solid #C9991A",
+        padding: "0.85rem 1.5rem",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              background: "#E6F1FB",
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <i
-              className="ti ti-school"
-              style={{ fontSize: 20, color: "#185FA5" }}
-            />
+          <div style={{
+            width: 36, height: 36, background: "#C9991A",
+            borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <i className="ti ti-school" style={{ fontSize: 20, color: "#FFFFFF" }} />
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 500 }}>PUPSantaRosa</div>
-            <div style={{ fontSize: 11, color: "#888" }}>
-              Room Reservation System
-            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>PUPSantaRosa</div>
+            <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
 
         <button
           onClick={() => navigate("/dashboard")}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: "none",
-            border: "0.5px solid #e0e0da",
-            borderRadius: 8,
-            padding: "6px 12px",
-            fontSize: 13,
-            color: "#666",
-            cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6,
+            background: "rgba(255,255,255,0.12)",
+            border: "0.5px solid rgba(201,153,26,0.5)",
+            borderRadius: 8, padding: "6px 12px",
+            fontSize: 13, color: "#FFFFFF", cursor: "pointer",
+            fontFamily: "'Poppins', sans-serif", fontWeight: 500,
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.borderColor = "#bbb")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.borderColor = "#e0e0da")
-          }
+          onMouseEnter={e => { e.currentTarget.style.background = "#C9991A"; e.currentTarget.style.borderColor = "#C9991A"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(201,153,26,0.5)"; }}
         >
           <i className="ti ti-arrow-left" /> Dashboard
         </button>
       </header>
 
-      {/* ── Page body ── */}
+      {/* Page body */}
       <div style={{ padding: "1.5rem", maxWidth: 900, margin: "0 auto" }}>
         <div style={{ marginBottom: "1.25rem" }}>
-          <h1 style={{ fontSize: 20, fontWeight: 500, margin: "0 0 2px" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>
             Available Rooms
           </h1>
-          <p style={{ fontSize: 13, color: "#888", margin: 0 }}>
+          <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>
             Click a room to make a reservation.
           </p>
         </div>
@@ -201,282 +139,178 @@ export default function Rooms() {
         {/* Loading skeletons */}
         {loading && (
           <div style={{ display: "grid", gap: 10 }}>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                style={{
-                  background: "#fff",
-                  border: "0.5px solid #e0e0da",
-                  borderRadius: 12,
-                  padding: "1rem",
-                  height: 80,
-                }}
-              />
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{
+                background: "#EDE4D4", border: "0.5px solid #D9C9A0",
+                borderRadius: 12, padding: "1rem", height: 80,
+              }} />
             ))}
           </div>
         )}
 
         {/* Fetch error */}
         {error && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              background: "#FCEBEB",
-              border: "0.5px solid #F7C1C1",
-              borderRadius: 8,
-              padding: "10px 14px",
-            }}
-          >
-            <i
-              className="ti ti-alert-circle"
-              style={{ color: "#A32D2D" }}
-            />
-            <span style={{ fontSize: 13, color: "#A32D2D" }}>{error}</span>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            background: "#F5E8E8", border: "0.5px solid #D9A0A0",
+            borderRadius: 8, padding: "10px 14px",
+          }}>
+            <i className="ti ti-alert-circle" style={{ color: "#8B0000" }} />
+            <span style={{ fontSize: 13, color: "#8B0000" }}>{error}</span>
           </div>
         )}
 
-        {/* ── Room list ── */}
+        {/* Room list */}
         <div style={{ display: "grid", gap: 10 }}>
-          {rooms.map((room) => {
+          {rooms.map(room => {
             const isSelected = selectedRoom?.id === room.id;
 
             return (
-              <div
-                key={room.id}
-                style={{
-                  background: "#fff",
-                  border: `0.5px solid ${isSelected ? "#185FA5" : "#e0e0da"}`,
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  transition: "border-color 0.15s",
-                }}
-              >
-                {/* ── Room row (clickable) ── */}
+              <div key={room.id} style={{
+                background: "#FFFFFF",
+                border: `0.5px solid ${isSelected ? "#8B0000" : "#D9C9A0"}`,
+                borderLeft: isSelected ? "3px solid #C9991A" : "3px solid transparent",
+                borderRadius: 12, overflow: "hidden",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+                boxShadow: isSelected ? "0 2px 8px rgba(139,0,0,0.10)" : "none",
+              }}>
+                {/* Room row (clickable) */}
                 <div
                   onClick={() => handleRoomClick(room)}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
+                    display: "flex", alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "1rem 1.25rem",
-                    cursor: "pointer",
+                    padding: "1rem 1.25rem", cursor: "pointer",
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected)
-                      e.currentTarget.parentElement.style.borderColor = "#bbb";
+                  onMouseEnter={e => {
+                    if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#C9991A";
                   }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected)
-                      e.currentTarget.parentElement.style.borderColor =
-                        "#e0e0da";
+                  onMouseLeave={e => {
+                    if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#D9C9A0";
                   }}
                 >
                   {/* Room info */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        background: "#E6F1FB",
-                        borderRadius: 8,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <i
-                        className="ti ti-door"
-                        style={{ fontSize: 20, color: "#185FA5" }}
-                      />
+                    <div style={{
+                      width: 38, height: 38,
+                      background: isSelected ? "#F5E8E8" : "#FDF5DF",
+                      borderRadius: 8,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <i className="ti ti-door" style={{ fontSize: 20, color: isSelected ? "#8B0000" : "#C9991A" }} />
                     </div>
                     <div>
-                      <p
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 500,
-                          margin: "0 0 2px",
-                        }}
-                      >
+                      <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 2px", color: "#1A5CA8" }}>
                         {room.name}
                       </p>
-                      <p style={{ fontSize: 12, color: "#888", margin: 0 }}>
-                        <i
-                          className="ti ti-users"
-                          style={{ fontSize: 11, marginRight: 4 }}
-                        />
+                      <p style={{ fontSize: 12, color: "#7A6030", margin: 0 }}>
+                        <i className="ti ti-users" style={{ fontSize: 11, marginRight: 4 }} />
                         Capacity: {room.capacity}
                         {room.location && (
-                          <>
-                            {" "}
-                            &nbsp;·&nbsp;{" "}
-                            <i
-                              className="ti ti-map-pin"
-                              style={{ fontSize: 11, marginRight: 4 }}
-                            />
-                            {room.location}
-                          </>
+                          <> &nbsp;·&nbsp; <i className="ti ti-map-pin" style={{ fontSize: 11, marginRight: 4 }} />{room.location}</>
                         )}
                       </p>
                     </div>
                   </div>
 
                   {/* Status badge + chevron */}
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 10 }}
-                  >
-                    {/*
-                      Status is now driven by room.status ('available' | 'occupied')
-                      returned by RoomSerializer.get_status() on the backend.
-                      Previously this used room.is_available (boolean) which no
-                      longer exists in the API response.
-                    */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={badgeStyles(room)}>
                       {isOccupied(room) ? "Occupied" : "Available"}
                     </span>
-
                     <i
-                      className={`ti ${
-                        isSelected ? "ti-chevron-up" : "ti-chevron-down"
-                      }`}
-                      style={{ fontSize: 16, color: "#aaa" }}
+                      className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
+                      style={{ fontSize: 16, color: "#C9991A" }}
                     />
                   </div>
                 </div>
 
-                {/* ── Inline reservation form (shown when room is selected) ── */}
+                {/* Inline reservation form */}
                 {isSelected && (
-                  <div
-                    style={{
-                      borderTop: "0.5px solid #e0e0da",
-                      padding: "1rem 1.25rem",
-                      background: "#fafaf9",
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        margin: "0 0 12px",
-                      }}
-                    >
+                  <div style={{
+                    borderTop: "0.5px solid #EDE4D4",
+                    padding: "1rem 1.25rem",
+                    background: "#FFFDF5",
+                  }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, margin: "0 0 12px", color: "#5A0000" }}>
                       Reserve — {room.name}
                     </p>
 
                     {/* Success message */}
                     {message && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          background: "#EDFAF3",
-                          border: "0.5px solid #A8DFC1",
-                          borderRadius: 8,
-                          padding: "8px 12px",
-                          marginBottom: 12,
-                        }}
-                      >
-                        <i
-                          className="ti ti-circle-check"
-                          style={{ color: "#1E7D4B" }}
-                        />
-                        <span style={{ fontSize: 12, color: "#1E7D4B" }}>
-                          {message}
-                        </span>
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        background: "#EDFAF3", border: "0.5px solid #A8DFC1",
+                        borderRadius: 8, padding: "8px 12px", marginBottom: 12,
+                      }}>
+                        <i className="ti ti-circle-check" style={{ color: "#1E7D4B" }} />
+                        <span style={{ fontSize: 12, color: "#1E7D4B" }}>{message}</span>
                       </div>
                     )}
 
                     {/* Form error */}
                     {formError && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          background: "#FCEBEB",
-                          border: "0.5px solid #F7C1C1",
-                          borderRadius: 8,
-                          padding: "8px 12px",
-                          marginBottom: 12,
-                        }}
-                      >
-                        <i
-                          className="ti ti-alert-circle"
-                          style={{ color: "#A32D2D" }}
-                        />
-                        <span style={{ fontSize: 12, color: "#A32D2D" }}>
-                          {formError}
-                        </span>
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        background: "#F5E8E8", border: "0.5px solid #D9A0A0",
+                        borderRadius: 8, padding: "8px 12px", marginBottom: 12,
+                      }}>
+                        <i className="ti ti-alert-circle" style={{ color: "#8B0000" }} />
+                        <span style={{ fontSize: 12, color: "#8B0000" }}>{formError}</span>
                       </div>
                     )}
 
                     <form onSubmit={handleReserve}>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 10,
-                          marginBottom: 12,
-                        }}
-                      >
+                      <div style={{
+                        display: "grid", gridTemplateColumns: "1fr 1fr",
+                        gap: 10, marginBottom: 12,
+                      }}>
+                        {/* Start Time */}
                         <div>
-                          <label
-                            style={{
-                              display: "block",
-                              fontSize: 12,
-                              fontWeight: 500,
-                              color: "#666",
-                              marginBottom: 5,
-                            }}
-                          >
+                          <label style={{
+                            display: "block", fontSize: 12, fontWeight: 500,
+                            color: "#5A0000", marginBottom: 5,
+                          }}>
                             Start Time
                           </label>
                           <input
                             type="datetime-local"
                             value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
+                            onChange={e => setStartTime(e.target.value)}
                             required
                             style={{
-                              width: "100%",
-                              padding: "7px 10px",
-                              fontSize: 13,
-                              border: "0.5px solid #ccc",
-                              borderRadius: 8,
-                              outline: "none",
-                              boxSizing: "border-box",
-                              background: "#fff",
+                              width: "100%", padding: "7px 10px", fontSize: 13,
+                              border: "0.5px solid #D9C9A0", borderRadius: 8,
+                              outline: "none", boxSizing: "border-box",
+                              background: "#FFFFFF", color: "#3A2000",
+                              fontFamily: "'Poppins', sans-serif",
                             }}
+                            onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
+                            onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}
                           />
                         </div>
+                        {/* End Time */}
                         <div>
-                          <label
-                            style={{
-                              display: "block",
-                              fontSize: 12,
-                              fontWeight: 500,
-                              color: "#666",
-                              marginBottom: 5,
-                            }}
-                          >
+                          <label style={{
+                            display: "block", fontSize: 12, fontWeight: 500,
+                            color: "#5A0000", marginBottom: 5,
+                          }}>
                             End Time
                           </label>
                           <input
                             type="datetime-local"
                             value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
+                            onChange={e => setEndTime(e.target.value)}
                             required
                             style={{
-                              width: "100%",
-                              padding: "7px 10px",
-                              fontSize: 13,
-                              border: "0.5px solid #ccc",
-                              borderRadius: 8,
-                              outline: "none",
-                              boxSizing: "border-box",
-                              background: "#fff",
+                              width: "100%", padding: "7px 10px", fontSize: 13,
+                              border: "0.5px solid #D9C9A0", borderRadius: 8,
+                              outline: "none", boxSizing: "border-box",
+                              background: "#FFFFFF", color: "#3A2000",
+                              fontFamily: "'Poppins', sans-serif",
                             }}
+                            onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
+                            onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}
                           />
                         </div>
                       </div>
@@ -487,17 +321,17 @@ export default function Rooms() {
                           disabled={submitting}
                           style={{
                             padding: "8px 16px",
-                            background: submitting ? "#85B7EB" : "#185FA5",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 8,
-                            fontSize: 13,
-                            fontWeight: 500,
+                            background: submitting ? "#C9991A99" : "#8B0000",
+                            color: "#FFFFFF",
+                            border: "none", borderRadius: 8,
+                            fontSize: 13, fontWeight: 600,
                             cursor: submitting ? "not-allowed" : "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
+                            display: "flex", alignItems: "center", gap: 6,
+                            fontFamily: "'Poppins', sans-serif",
+                            transition: "background 0.15s",
                           }}
+                          onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#C9991A"; }}
+                          onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = "#8B0000"; }}
                         >
                           <i className="ti ti-calendar-plus" />
                           {submitting ? "Submitting..." : "Reserve Room"}
@@ -507,14 +341,13 @@ export default function Rooms() {
                           type="button"
                           onClick={() => setSelectedRoom(null)}
                           style={{
-                            padding: "8px 14px",
-                            background: "none",
-                            border: "0.5px solid #ccc",
-                            borderRadius: 8,
-                            fontSize: 13,
-                            color: "#666",
-                            cursor: "pointer",
+                            padding: "8px 14px", background: "none",
+                            border: "0.5px solid #D9C9A0", borderRadius: 8,
+                            fontSize: 13, color: "#8B0000", cursor: "pointer",
+                            fontFamily: "'Poppins', sans-serif", fontWeight: 500,
                           }}
+                          onMouseEnter={e => { e.currentTarget.style.background = "#F5E8E8"; e.currentTarget.style.borderColor = "#D9A0A0"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "#D9C9A0"; }}
                         >
                           Cancel
                         </button>
@@ -529,18 +362,11 @@ export default function Rooms() {
 
         {/* Empty state */}
         {!loading && rooms.length === 0 && !error && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "3rem 1rem",
-              color: "#aaa",
-              fontSize: 13,
-            }}
-          >
-            <i
-              className="ti ti-building-off"
-              style={{ fontSize: 32, display: "block", marginBottom: 8 }}
-            />
+          <div style={{
+            textAlign: "center", padding: "3rem 1rem",
+            color: "#B0A080", fontSize: 13,
+          }}>
+            <i className="ti ti-building-off" style={{ fontSize: 32, display: "block", marginBottom: 8, color: "#C9991A" }} />
             No rooms available right now.
           </div>
         )}
