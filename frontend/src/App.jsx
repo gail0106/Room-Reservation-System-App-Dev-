@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Rooms from "./pages/Rooms";
 import Reservations from "./pages/Reservations";
 import AdminReservations from "./pages/AdminReservations";
+import AdminRooms from "./pages/AdminRooms";
 import Calendar from "./pages/Calendar";
 import Notifications from "./pages/Notifications";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -27,6 +28,11 @@ function App() {
       <Route path="/admin/reservations" element={
         <ProtectedRoute allowedRoles={["admin"]}>
           <AdminReservations />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/rooms" element={
+        <ProtectedRoute allowedRoles={["admin"]}>
+          <AdminRooms />
         </ProtectedRoute>
       } />
     </Routes>

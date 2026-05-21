@@ -79,9 +79,9 @@ export default function Rooms() {
     fontWeight: 500,
     padding: "3px 8px",
     borderRadius: 20,
-    background: isOccupied(room) ? "#F5E8E8" : "#FDF5DF",
-    color: isOccupied(room) ? "#8B0000" : "#7A5500",
-    border: `0.5px solid ${isOccupied(room) ? "#D9A0A0" : "#D9C070"}`,
+    background: isOccupied(room) ? "#F5E8E8" : "#EDFAF3",
+    color: isOccupied(room) ? "#8B0000" : "#1E7D4B",
+    border: `0.5px solid ${isOccupied(room) ? "#D9A0A0" : "#A8DFC1"}`,
   });
 
   return (
@@ -193,11 +193,14 @@ export default function Rooms() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{
                       width: 38, height: 38,
-                      background: isSelected ? "#F5E8E8" : "#FDF5DF",
+                      background: isOccupied(room) ? "#F5E8E8" : "#EDFAF3",
                       borderRadius: 8,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      <i className="ti ti-door" style={{ fontSize: 20, color: isSelected ? "#8B0000" : "#C9991A" }} />
+                      <i className="ti ti-door" style={{ 
+                        fontSize: 20, 
+                        color: isOccupied(room) ? "#8B0000" : "#1E7D4B" 
+                      }} />
                     </div>
                     <div>
                       <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 2px", color: "#1A5CA8" }}>

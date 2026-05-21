@@ -2,19 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 
-// Color palette:
-// Dark Red:   #8B0000
-// Yellow Gold:#C9991A
-// White:      #FFFFFF
-// Blue links: #1A5CA8
-// Backgrounds use off-white/light gold tints for depth
-
 const iconColors = {
   blue:   { bg: "#E8EEF7", color: "#1A5CA8" },
   teal:   { bg: "#FBF5E6", color: "#8B6000" },
   amber:  { bg: "#FDF0CC", color: "#C9991A" },
   purple: { bg: "#F5E8E8", color: "#8B0000" },
   red:    { bg: "#F5E8E8", color: "#8B0000" },
+  green:  { bg: "#EDFAF3", color: "#1E7D4B" },
 };
 
 const statusDot = {
@@ -99,7 +93,10 @@ export default function Dashboard() {
     { label: "My Reservations", desc: "Manage your bookings", icon: "ti-clipboard-list", color: "teal", path: "/reservations" },
     { label: "Calendar", desc: "Monthly overview", icon: "ti-calendar", color: "amber", path: "/calendar" },
     { label: "Notifications", desc: "Updates & alerts", icon: "ti-bell", color: "purple", path: "/notifications" },
-    ...(isAdmin ? [{ label: "Manage Reservations", desc: "Approve or reject requests", icon: "ti-shield-check", color: "red", path: "/admin/reservations" }] : []),
+    ...(isAdmin ? [
+      { label: "Manage Reservations", desc: "Approve or reject requests", icon: "ti-shield-check", color: "red", path: "/admin/reservations" },
+      { label: "Manage Rooms", desc: "Add, edit or remove rooms", icon: "ti-building-plus", color: "green", path: "/admin/rooms" },
+    ] : []),
   ];
 
   const statCards = [
@@ -120,7 +117,6 @@ export default function Dashboard() {
       minHeight: "100vh",
       background: "#F7F3EE",
     }}>
-      {/* Poppins font import */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
         * { font-family: 'Poppins', sans-serif; }
@@ -291,7 +287,7 @@ export default function Dashboard() {
               <div>
                 <p style={{
                   fontSize: 13, fontWeight: 600, margin: "0 0 2px",
-                  color: "#1A5CA8",  /* blue for clickable labels */
+                  color: "#1A5CA8",
                 }}>
                   {label}
                 </p>
