@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
-// Status colors retained as-is (semantic meaning)
 const typeConfig = {
   pending: {
     bg: "#FFF8EC", border: "#F5D9A8", color: "#854F0B", dot: "#E59A1A",
@@ -30,6 +29,25 @@ const typeConfig = {
   },
 };
 
+const formatLocal = (dateStr) =>
+  new Date(dateStr).toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: true,
+  });
+
+const formatLocalTime = (dateStr) =>
+  new Date(dateStr).toLocaleTimeString("en-PH", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit", minute: "2-digit", hour12: true,
+  });
+
+const formatLocalDate = (dateStr) =>
+  new Date(dateStr).toLocaleDateString("en-PH", {
+    timeZone: "Asia/Manila",
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+
 function timeAgo(dateStr) {
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
   if (diff < 60) return "Just now";
@@ -43,6 +61,7 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedNotif, setSelectedNotif] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,7 +80,11 @@ export default function Notifications() {
 
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'); * { font-family: 'Poppins', sans-serif; }`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
 
       {/* Header */}
       <header style={{
@@ -103,7 +126,9 @@ export default function Notifications() {
         <div style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>Notifications</h1>
-            <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>Updates and alerts on your reservations.</p>
+            <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>
+              Tap a notification to view reservation details.
+            </p>
           </div>
           {notifications.length > 0 && (
             <span style={{
@@ -169,15 +194,20 @@ export default function Notifications() {
               return (
                 <div
                   key={notif.id}
+                  onClick={() => setSelectedNotif(notif)}
                   style={{
                     display: "flex", gap: 14,
                     padding: "1rem 1.25rem",
                     borderBottom: i < notifications.length - 1 ? "0.5px solid #EDE4D4" : "none",
                     alignItems: "flex-start",
                     borderLeft: `3px solid ${cfg.dot}`,
+                    cursor: "pointer",
+                    transition: "background 0.15s",
                   }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#FDF9F0"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  {/* Icon — retains status color */}
+                  {/* Icon */}
                   <div style={{
                     width: 36, height: 36, borderRadius: 8,
                     background: cfg.bg, border: `0.5px solid ${cfg.border}`,
@@ -189,53 +219,21 @@ export default function Notifications() {
 
                   {/* Content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-
-                    {/* Title + time ago */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
                       <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#3A2000", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {notif.title}
                       </p>
-                      <span style={{ fontSize: 11, color: "#B0A080", flexShrink: 0 }}>{timeAgo(notif.created_at)}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: "#B0A080" }}>{timeAgo(notif.created_at)}</span>
+                        <i className="ti ti-chevron-right" style={{ fontSize: 13, color: "#C9991A" }} />
+                      </div>
                     </div>
 
-                    {/* Message */}
-                    <p style={{ fontSize: 12, color: "#7A6030", margin: "0 0 8px", lineHeight: 1.5 }}>{notif.message}</p>
+                    <p style={{ fontSize: 12, color: "#7A6030", margin: "0 0 8px", lineHeight: 1.5 }}>
+                      {notif.message}
+                    </p>
 
-                    {/* Reservation details */}
-                    {(notif.room_name || notif.start_time || notif.end_time) && (
-                      <div style={{
-                        background: "#FDF5DF", border: "0.5px solid #EDE4D4",
-                        borderRadius: 8, padding: "0.6rem 0.85rem",
-                        marginBottom: 8, display: "flex", flexDirection: "column", gap: 5,
-                      }}>
-                        {notif.room_name && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <i className="ti ti-building" style={{ fontSize: 12, color: "#C9991A", flexShrink: 0 }} />
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "#1A5CA8" }}>{notif.room_name}</span>
-                          </div>
-                        )}
-                        {notif.start_time && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <i className="ti ti-calendar" style={{ fontSize: 12, color: "#C9991A", flexShrink: 0 }} />
-                            <span style={{ fontSize: 12, color: "#5A3000" }}>
-                              {new Date(notif.start_time).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
-                            </span>
-                          </div>
-                        )}
-                        {notif.start_time && notif.end_time && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <i className="ti ti-clock" style={{ fontSize: 12, color: "#C9991A", flexShrink: 0 }} />
-                            <span style={{ fontSize: 12, color: "#5A3000" }}>
-                              {new Date(notif.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                              {" — "}
-                              {new Date(notif.end_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Status badge — retains status color */}
+                    {/* Status badge */}
                     <span style={{
                       fontSize: 10, fontWeight: 600,
                       background: cfg.bg, color: cfg.color,
@@ -247,15 +245,163 @@ export default function Notifications() {
                       <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dot, display: "inline-block" }} />
                       {cfg.label}
                     </span>
-
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-
       </div>
+
+      {/* ── Reservation Details Modal ── */}
+      {selectedNotif && (
+        <div
+          onClick={() => setSelectedNotif(null)}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 100, padding: "1rem",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#FFFFFF", borderRadius: 16,
+              width: "100%", maxWidth: 420,
+              boxShadow: "0 8px 32px rgba(139,0,0,0.15)",
+              border: "0.5px solid #D9C9A0",
+              animation: "fadeIn 0.18s ease",
+              overflow: "hidden",
+            }}
+          >
+            {/* Modal header */}
+            <div style={{
+              background: "#8B0000", borderRadius: "16px 16px 0 0",
+              padding: "1rem 1.25rem",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="ti ti-clipboard-list" style={{ fontSize: 18, color: "#F5D98A" }} />
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>
+                  Reservation Details
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedNotif(null)}
+                style={{
+                  background: "rgba(255,255,255,0.12)", border: "none",
+                  borderRadius: 6, width: 28, height: 28,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#FFFFFF", fontSize: 16,
+                }}
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div style={{ padding: "1.25rem" }}>
+
+              <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 4px", color: "#5A0000" }}>
+                {selectedNotif.title}
+              </p>
+              <p style={{ fontSize: 12, color: "#7A6030", margin: "0 0 16px", lineHeight: 1.6 }}>
+                {selectedNotif.message}
+              </p>
+
+              {/* Details card */}
+              <div style={{
+                background: "#FDF5DF", border: "0.5px solid #D9C9A0",
+                borderRadius: 10, padding: "1rem",
+                display: "flex", flexDirection: "column", gap: 12,
+              }}>
+                {/* Room */}
+                {selectedNotif.room_name && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: "#E8EEF7", border: "0.5px solid #C0D0E8",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      <i className="ti ti-building" style={{ fontSize: 15, color: "#1A5CA8" }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 10, color: "#B0A080", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Room</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#1A5CA8" }}>{selectedNotif.room_name}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Date */}
+                {selectedNotif.start_time && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: "#FDF0CC", border: "0.5px solid #D9C070",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      <i className="ti ti-calendar" style={{ fontSize: 15, color: "#C9991A" }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 10, color: "#B0A080", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Date</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#3A2000" }}>{formatLocalDate(selectedNotif.start_time)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Time */}
+                {selectedNotif.start_time && selectedNotif.end_time && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: "#EDFAF3", border: "0.5px solid #A8DFC1",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      <i className="ti ti-clock" style={{ fontSize: 15, color: "#1E7D4B" }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 10, color: "#B0A080", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Time</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#3A2000" }}>
+                        {formatLocalTime(selectedNotif.start_time)} — {formatLocalTime(selectedNotif.end_time)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback */}
+                {!selectedNotif.room_name && !selectedNotif.start_time && (
+                  <p style={{ fontSize: 12, color: "#B0A080", margin: 0, textAlign: "center" }}>
+                    No reservation details available.
+                  </p>
+                )}
+              </div>
+
+              {/* Received timestamp */}
+              <p style={{ fontSize: 11, color: "#B0A080", margin: "12px 0 0", textAlign: "right" }}>
+                Received {formatLocal(selectedNotif.created_at)}
+              </p>
+
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedNotif(null)}
+                style={{
+                  width: "100%", marginTop: 14,
+                  padding: "9px 0", background: "#8B0000",
+                  color: "#FFFFFF", border: "none", borderRadius: 8,
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "#C9991A"}
+                onMouseLeave={e => e.currentTarget.style.background = "#8B0000"}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

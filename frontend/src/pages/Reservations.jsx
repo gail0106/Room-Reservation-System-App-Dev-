@@ -34,6 +34,25 @@ export default function MyReservations() {
     }
   };
 
+  const formatLocal = (dateStr) =>
+    new Date(dateStr).toLocaleString("en-PH", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+  const formatLocalTime = (dateStr) =>
+    new Date(dateStr).toLocaleTimeString("en-PH", {
+      timeZone: "Asia/Manila",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'); * { font-family: 'Poppins', sans-serif; }`}</style>
@@ -178,7 +197,7 @@ export default function MyReservations() {
                     </p>
                     <p style={{ fontSize: 11, color: "#7A6030", margin: 0 }}>
                       <i className="ti ti-clock" style={{ fontSize: 11, marginRight: 4 }} />
-                      {new Date(res.start_time).toLocaleString()} — {new Date(res.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {formatLocal(res.start_time)} — {formatLocalTime(res.end_time)}                    
                     </p>
                   </div>
 
