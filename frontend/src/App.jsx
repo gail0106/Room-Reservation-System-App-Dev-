@@ -9,9 +9,11 @@ import AdminRooms from "./pages/AdminRooms";
 import Calendar from "./pages/Calendar";
 import Notifications from "./pages/Notifications";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import VoiceAssistant from "./components/VoiceAssistant";
 
 function App() {
   return (
+    <>
     <Routes>
       {/* Public */}
       <Route path="/" element={<Login />} />
@@ -36,6 +38,8 @@ function App() {
         </ProtectedRoute>
       } />
     </Routes>
+    <VoiceAssistant />
+    </>
   );
 }
 

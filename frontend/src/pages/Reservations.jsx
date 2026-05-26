@@ -99,7 +99,7 @@ export default function MyReservations() {
 
         {/* Page title */}
         <div style={{ marginBottom: "1.5rem" }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>My Reservations</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>My Bookings</h1>
           <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>View and track all your room bookings.</p>
         </div>
 

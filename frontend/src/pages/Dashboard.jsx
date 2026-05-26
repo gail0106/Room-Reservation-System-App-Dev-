@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 
+
 const iconColors = {
   blue:   { bg: "#E8EEF7", color: "#1A5CA8" },
   teal:   { bg: "#FBF5E6", color: "#8B6000" },
@@ -28,6 +29,7 @@ const statusLabel = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+
   const role = localStorage.getItem("role") || "student";
   const username = localStorage.getItem("username") || "User";
   const initials = username.slice(0, 2).toUpperCase();
@@ -90,7 +92,7 @@ export default function Dashboard() {
 
   const navItems = [
     { label: "View Rooms", desc: "Browse available spaces", icon: "ti-building", color: "blue", path: "/rooms" },
-    { label: "My Reservations", desc: "Manage your bookings", icon: "ti-clipboard-list", color: "teal", path: "/reservations" },
+    { label: "My Bookings", desc: "Manage your bookings", icon: "ti-clipboard-list", color: "teal", path: "/reservations" },
     { label: "Calendar", desc: "Monthly overview", icon: "ti-calendar", color: "amber", path: "/calendar" },
     { label: "Notifications", desc: "Updates & alerts", icon: "ti-bell", color: "purple", path: "/notifications" },
     ...(isAdmin ? [
@@ -159,6 +161,7 @@ export default function Dashboard() {
           >
             <i className="ti ti-bell" style={{ fontSize: 18, color: "#F5D98A" }} />
           </button>
+
           <div
             title={`${username} (${role})`}
             style={{
@@ -206,6 +209,7 @@ export default function Dashboard() {
             </span>
           )}
         </div>
+
 
         {/* Stats */}
         <div style={{
