@@ -116,6 +116,10 @@ export default function useVoiceCommands(navigate) {
         ["thanks", "thank you", "okay", "ok", "alright"],
         "No problem!"
       ),
+     makeReply(
+        ["Bye", "Goodbye", "That's all", "Stop"],
+        "Alright, click the mic again to wake me up!"
+     ),
       make(
         ["go to dashboard", "open dashboard", "show dashboard", "dashboard"],
         "Opening dashboard.", "/dashboard"

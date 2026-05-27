@@ -64,7 +64,14 @@ export default function Rooms() {
     setFormError("");
     setSubmitting(true);
     try {
-      const toISO = (val) => new Date(val).toISOString();
+        // AFTER — sends local time with timezone offset instead of converting to UTC
+  const toISO = (val) => {
+    const date = new Date(val);
+    const offset = -date.getTimezoneOffset();
+    const sign = offset >= 0 ? "+" : "-";
+    const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset/60)}:${pad(offset%60)}`;
+  };
 
       await API.post("/reservations/", {
         room: selectedRoom.id,

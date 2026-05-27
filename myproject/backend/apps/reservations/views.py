@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from django.utils.timezone import now
+from datetime import timedelta
 
 from .models import Reservation
 from .serializers import ReservationSerializer, CalendarReservationSerializer
@@ -39,7 +40,7 @@ class ReservationListCreateView(generics.ListCreateAPIView):
         end_time = serializer.validated_data['end_time']
 
         # 1. prevent past booking
-        if start_time < now():
+        if start_time < now() - timedelta(minutes=2):
             raise ValidationError({"error": "Cannot reserve past time."})
 
         # 2. validate time
