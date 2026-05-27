@@ -91,13 +91,14 @@ import os
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME') or os.environ.get('PGDATABASE'),
-        'USER': os.environ.get('DB_USER') or os.environ.get('PGUSER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD') or os.environ.get('PGPASSWORD'),
-        'HOST': os.environ.get('DB_HOST') or os.environ.get('PGHOST'),
-        'PORT': os.environ.get('DB_PORT') or os.environ.get('PGPORT', '5432'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST', ''),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
