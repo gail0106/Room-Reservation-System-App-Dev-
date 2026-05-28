@@ -5,14 +5,27 @@ const API = axios.create({
 });
 
 API.interceptors.request.use((config) => {
-
   const token = localStorage.getItem("token");
-
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
+
+// Handle 401 — token expired or invalid
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const wasLoggedIn = !!localStorage.getItem("token");
+      localStorage.clear();
+      if (wasLoggedIn) {
+        sessionStorage.setItem("sessionExpired", "true");
+        window.location.href = "/";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default API;

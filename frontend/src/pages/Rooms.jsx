@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 
@@ -16,7 +16,10 @@ export default function Rooms() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Extract floor number from location string e.g. "1st Floor" → 1, "2nd Floor" → 2
+  // Real-time availability state
+  const [availability, setAvailability] = useState(null); // null | "checking" | "available" | "unavailable"
+  const debounceTimer = useRef(null);
+
   const getFloorNumber = (location = "") => {
     const match = location.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 999;
@@ -26,12 +29,9 @@ export default function Rooms() {
     try {
       const response = await API.get("/rooms/");
       const data = response.data?.data ?? response.data ?? [];
-
-      // Sort by floor number ascending (1st → 2nd → 3rd...)
       const sorted = [...data].sort((a, b) =>
         getFloorNumber(a.location) - getFloorNumber(b.location)
       );
-
       setRooms(sorted);
     } catch {
       setError("Failed to load rooms. Please try again.");
@@ -46,9 +46,71 @@ export default function Rooms() {
     return () => clearInterval(interval);
   }, [fetchRooms]);
 
+  // Check availability whenever startTime or endTime changes (debounced 500ms)
+  useEffect(() => {
+    if (!selectedRoom || !startTime || !endTime) {
+      setAvailability(null);
+      return;
+    }
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    // Don't check if end is before or equal to start
+    if (end <= start) {
+      setAvailability(null);
+      return;
+    }
+
+    setAvailability("checking");
+
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const toISO = (val) => {
+          const date = new Date(val);
+          const offset = -date.getTimezoneOffset();
+          const sign = offset >= 0 ? "+" : "-";
+          const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+          return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset/60)}:${pad(offset%60)}`;
+        };
+
+        // Hit the reservations endpoint and check for overlaps locally,
+        // or use a dedicated availability endpoint if your API has one.
+        const res = await API.get(`/reservations/`, {
+          params: {
+            room: selectedRoom.id,
+            start_time: toISO(startTime),
+            end_time: toISO(endTime),
+          }
+        });
+
+        const existing = res.data?.data ?? res.data ?? [];
+
+        // Filter reservations for this room that overlap and are active
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        const conflict = existing.some(r => {
+          if (r.room !== selectedRoom.id && r.room_id !== selectedRoom.id) return false;
+          if (["cancelled", "rejected"].includes(r.status)) return false;
+          const rStart = new Date(r.start_time);
+          const rEnd = new Date(r.end_time);
+          return start < rEnd && end > rStart;
+        });
+
+        setAvailability(conflict ? "unavailable" : "available");
+      } catch {
+        setAvailability(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer.current);
+  }, [startTime, endTime, selectedRoom]);
+
   const handleRoomClick = (room) => {
     if (selectedRoom?.id === room.id) {
       setSelectedRoom(null);
+      setAvailability(null);
       return;
     }
     setSelectedRoom(room);
@@ -56,6 +118,7 @@ export default function Rooms() {
     setEndTime("");
     setMessage("");
     setFormError("");
+    setAvailability(null);
   };
 
   const handleReserve = async (e) => {
@@ -64,14 +127,13 @@ export default function Rooms() {
     setFormError("");
     setSubmitting(true);
     try {
-        // AFTER — sends local time with timezone offset instead of converting to UTC
-  const toISO = (val) => {
-    const date = new Date(val);
-    const offset = -date.getTimezoneOffset();
-    const sign = offset >= 0 ? "+" : "-";
-    const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset/60)}:${pad(offset%60)}`;
-  };
+      const toISO = (val) => {
+        const date = new Date(val);
+        const offset = -date.getTimezoneOffset();
+        const sign = offset >= 0 ? "+" : "-";
+        const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+        return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset/60)}:${pad(offset%60)}`;
+      };
 
       await API.post("/reservations/", {
         room: selectedRoom.id,
@@ -81,6 +143,7 @@ export default function Rooms() {
       setMessage("Reservation submitted! Waiting for approval.");
       setStartTime("");
       setEndTime("");
+      setAvailability(null);
       fetchRooms();
     } catch (err) {
       setFormError(
@@ -93,19 +156,14 @@ export default function Rooms() {
     }
   };
 
-  const isOccupied = (room) => room.status === "occupied";
+  // Availability badge config
+  const availabilityBadge = {
+    checking:    { bg: "#F0EFFF", color: "#5A52A8", border: "#C0BDEF", icon: "ti-loader-2", label: "Checking..." },
+    available:   { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", icon: "ti-circle-check", label: "Available for this slot" },
+    unavailable: { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", icon: "ti-circle-x",    label: "Not available for this slot" },
+  };
 
-  const badgeStyles = (room) => ({
-    fontSize: 11,
-    fontWeight: 500,
-    padding: "3px 8px",
-    borderRadius: 20,
-    background: isOccupied(room) ? "#F5E8E8" : "#EDFAF3",
-    color: isOccupied(room) ? "#8B0000" : "#1E7D4B",
-    border: `0.5px solid ${isOccupied(room) ? "#D9A0A0" : "#A8DFC1"}`,
-  });
-
-  // Group rooms by floor label for section headers
+  // Group rooms by floor
   const groupedRooms = rooms.reduce((acc, room) => {
     const floor = room.location || "Other";
     if (!acc[floor]) acc[floor] = [];
@@ -115,7 +173,12 @@ export default function Rooms() {
 
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'); * { font-family: 'Poppins', sans-serif; }`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+      `}</style>
 
       {/* Header */}
       <header style={{
@@ -136,7 +199,6 @@ export default function Rooms() {
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
-
         <button
           onClick={() => navigate("/dashboard")}
           style={{
@@ -194,15 +256,10 @@ export default function Rooms() {
           <div key={floor} style={{ marginBottom: "1.5rem" }}>
 
             {/* Floor section header */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              marginBottom: 10,
-            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <div style={{
-                width: 28, height: 28, borderRadius: 6,
-                background: "#8B0000",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
+                width: 28, height: 28, borderRadius: 6, background: "#8B0000",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
               }}>
                 <i className="ti ti-building" style={{ fontSize: 14, color: "#F5D98A" }} />
               </div>
@@ -222,6 +279,7 @@ export default function Rooms() {
             <div style={{ display: "grid", gap: 10 }}>
               {floorRooms.map(room => {
                 const isSelected = selectedRoom?.id === room.id;
+                const isOccupied = room.status === "occupied";
 
                 return (
                   <div key={room.id} style={{
@@ -232,6 +290,7 @@ export default function Rooms() {
                     transition: "border-color 0.15s, box-shadow 0.15s",
                     boxShadow: isSelected ? "0 2px 8px rgba(139,0,0,0.10)" : "none",
                   }}>
+
                     {/* Room row (clickable) */}
                     <div
                       onClick={() => handleRoomClick(room)}
@@ -251,13 +310,13 @@ export default function Rooms() {
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{
                           width: 38, height: 38,
-                          background: isOccupied(room) ? "#F5E8E8" : "#EDFAF3",
+                          background: isOccupied ? "#F5E8E8" : "#EDFAF3",
                           borderRadius: 8,
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
                           <i className="ti ti-door" style={{
                             fontSize: 20,
-                            color: isOccupied(room) ? "#8B0000" : "#1E7D4B"
+                            color: isOccupied ? "#8B0000" : "#1E7D4B",
                           }} />
                         </div>
                         <div>
@@ -271,16 +330,11 @@ export default function Rooms() {
                         </div>
                       </div>
 
-                      {/* Status badge + chevron */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={badgeStyles(room)}>
-                          {isOccupied(room) ? "Occupied" : "Available"}
-                        </span>
-                        <i
-                          className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
-                          style={{ fontSize: 16, color: "#C9991A" }}
-                        />
-                      </div>
+                      {/* Chevron only — no status badge */}
+                      <i
+                        className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
+                        style={{ fontSize: 16, color: "#C9991A" }}
+                      />
                     </div>
 
                     {/* Inline reservation form */}
@@ -347,6 +401,7 @@ export default function Rooms() {
                                 onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}
                               />
                             </div>
+
                             {/* End Time */}
                             <div>
                               <label style={{
@@ -373,23 +428,56 @@ export default function Rooms() {
                             </div>
                           </div>
 
+                          {/* Real-time availability badge */}
+                          {availability && (() => {
+                            const badge = availabilityBadge[availability];
+                            return (
+                              <div style={{
+                                display: "flex", alignItems: "center", gap: 8,
+                                background: badge.bg,
+                                border: `0.5px solid ${badge.border}`,
+                                borderRadius: 8, padding: "8px 12px",
+                                marginBottom: 12,
+                                transition: "all 0.2s ease",
+                              }}>
+                                <i
+                                  className={`ti ${badge.icon}${availability === "checking" ? " spin" : ""}`}
+                                  style={{ fontSize: 15, color: badge.color, flexShrink: 0 }}
+                                />
+                                <span style={{ fontSize: 12, fontWeight: 500, color: badge.color }}>
+                                  {badge.label}
+                                </span>
+                              </div>
+                            );
+                          })()}
+
                           <div style={{ display: "flex", gap: 8 }}>
                             <button
                               type="submit"
-                              disabled={submitting}
+                              disabled={submitting || availability === "unavailable"}
                               style={{
                                 padding: "8px 16px",
-                                background: submitting ? "#C9991A99" : "#8B0000",
-                                color: "#FFFFFF",
+                                background: submitting
+                                  ? "#C9991A99"
+                                  : availability === "unavailable"
+                                    ? "#D9C9A0"
+                                    : "#8B0000",
+                                color: availability === "unavailable" ? "#9A8060" : "#FFFFFF",
                                 border: "none", borderRadius: 8,
                                 fontSize: 13, fontWeight: 600,
-                                cursor: submitting ? "not-allowed" : "pointer",
+                                cursor: (submitting || availability === "unavailable") ? "not-allowed" : "pointer",
                                 display: "flex", alignItems: "center", gap: 6,
                                 fontFamily: "'Poppins', sans-serif",
                                 transition: "background 0.15s",
                               }}
-                              onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#C9991A"; }}
-                              onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = "#8B0000"; }}
+                              onMouseEnter={e => {
+                                if (!submitting && availability !== "unavailable")
+                                  e.currentTarget.style.background = "#C9991A";
+                              }}
+                              onMouseLeave={e => {
+                                if (!submitting && availability !== "unavailable")
+                                  e.currentTarget.style.background = "#8B0000";
+                              }}
                             >
                               <i className="ti ti-calendar-plus" />
                               {submitting ? "Submitting..." : "Reserve Room"}
@@ -397,7 +485,7 @@ export default function Rooms() {
 
                             <button
                               type="button"
-                              onClick={() => setSelectedRoom(null)}
+                              onClick={() => { setSelectedRoom(null); setAvailability(null); }}
                               style={{
                                 padding: "8px 14px", background: "none",
                                 border: "0.5px solid #D9C9A0", borderRadius: 8,
