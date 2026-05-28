@@ -1,266 +1,223 @@
-
+import { useState, useRef, useCallback, useEffect } from "react";
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { parseIntent } from "../lib/parseIntent";
+import API from "../api/axios";
+
+// ── ISO helper ────────────────────────────────────────────────────────────
+const toISO = (dateStr, timeStr) => {
+  const date = new Date(`${dateStr}T${timeStr}`);
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset / 60)}:${pad(offset % 60)}`;
+};
 
 export default function useVoiceCommands(navigate) {
-  const [assistantActive, _setAssistantActive] = useState(false);
-  const [isSpeaking, setIsSpeaking]             = useState(false);
-  const [statusMessage, setStatusMessage]         = useState("");
+  const [assistantActive, setAssistantActive]     = useState(false);
+  const [isSpeaking, setIsSpeaking]               = useState(false);
   const [displayTranscript, setDisplayTranscript] = useState("");
 
   const assistantActiveRef = useRef(false);
   const isSpeakingRef      = useRef(false);
-  const recognitionRef     = useRef(null);
-  const restartPendingRef  = useRef(false);
-  const commandMatchedRef  = useRef(false);
-  const noCommandTimerRef  = useRef(null);
-  const lastTranscriptRef  = useRef("");
-  const cooldownRef        = useRef(false);
-  const stopListeningRef   = useRef(null);
-  const speakRef           = useRef(null);
-  const navigateRef        = useRef(navigate);
-  const resetTranscriptRef = useRef(null);
-  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
+  const processingRef      = useRef(false);
+  const transcriptTimerRef = useRef(null);
 
-  const setAssistantActive = (val) => {
-    assistantActiveRef.current = val;
-    _setAssistantActive(val);
-  };
+  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
+    useSpeechRecognition();
 
-  const startCooldown = useCallback((ms = 2000) => {
-    cooldownRef.current = true;
-    setTimeout(() => { cooldownRef.current = false; }, ms);
-  }, []);
-
-  const resumeListening = useCallback(() => {
-    if (!assistantActiveRef.current || isSpeakingRef.current || restartPendingRef.current) return;
-    restartPendingRef.current = true;
-    try { recognitionRef.current?.abort(); } catch (_) {}
-    setTimeout(() => {
-      restartPendingRef.current = false;
-      if (!assistantActiveRef.current || isSpeakingRef.current) return;
-      SpeechRecognition.startListening({ continuous: true, language: "en-US" });
-    }, 80);
-  }, []);
-
+  // ── speak ─────────────────────────────────────────────────────────────────
   const speak = useCallback((text, onDone) => {
     if (!window.speechSynthesis) { onDone?.(); return; }
+
     window.speechSynthesis.cancel();
-    try { recognitionRef.current?.abort(); } catch (_) {}
+    SpeechRecognition.stopListening();
 
     isSpeakingRef.current = true;
     setIsSpeaking(true);
-    setDisplayTranscript("");
 
-    const utter    = new SpeechSynthesisUtterance(text);
-    utter.lang     = "en-US";
-    utter.rate     = 1.12;
-    utter.pitch    = 0.95;
-    utter.volume   = 0.9;
+    const utterance  = new SpeechSynthesisUtterance(text);
+    utterance.lang   = "en-US";
+    utterance.rate   = 1.1;
+    utterance.pitch  = 0.95;
 
     const finish = () => {
       isSpeakingRef.current = false;
       setIsSpeaking(false);
       onDone?.();
-      setTimeout(() => {
-        if (assistantActiveRef.current) resumeListening();
-      }, 400);
+      if (assistantActiveRef.current) {
+        setTimeout(() => {
+          SpeechRecognition.startListening({ continuous: true, language: "en-US" });
+        }, 400);
+      }
     };
 
-    utter.onend   = finish;
-    utter.onerror = finish;
-    window.speechSynthesis.speak(utter);
-  }, [resumeListening]);
-
-  useEffect(() => { speakRef.current = speak; }, [speak]);
-
-  const commands = useMemo(() => {
-    // Navigation command — shows text + navigates
-    const make = (phrases, message, path) => ({
-      command: phrases,
-      isFuzzyMatch: true,
-      fuzzyMatchingThreshold: 0.6,
-      callback: () => {
-        commandMatchedRef.current = true;
-        if (noCommandTimerRef.current) clearTimeout(noCommandTimerRef.current);
-        resetTranscriptRef.current?.();
-        lastTranscriptRef.current = "";
-        commandMatchedRef.current = false;
-        startCooldown(2500);
-        setStatusMessage(message);
-        setDisplayTranscript(message);
-        setTimeout(() => {
-          navigateRef.current?.(path);
-        }, 800);
-      },
-    });
-
-    // Reply command — speaks the response and stays active, no navigation
-    const makeReply = (phrases, message) => ({
-      command: phrases,
-      isFuzzyMatch: true,
-      fuzzyMatchingThreshold: 0.6,
-      callback: () => {
-        commandMatchedRef.current = true;
-        if (noCommandTimerRef.current) clearTimeout(noCommandTimerRef.current);
-        resetTranscriptRef.current?.();
-        lastTranscriptRef.current = "";
-        startCooldown(2500);
-        setDisplayTranscript(message);
-        speakRef.current?.(message); // speaks and resumes listening after
-      },
-    });
-
-    return [
-      makeReply(
-        ["thanks", "thank you", "okay", "ok", "alright"],
-        "No problem!"
-      ),
-     makeReply(
-        ["Bye", "Goodbye", "That's all", "Stop"],
-        "Alright, click the mic again to wake me up!"
-     ),
-      make(
-        ["go to dashboard", "open dashboard", "show dashboard", "dashboard"],
-        "Opening dashboard.", "/dashboard"
-      ),
-      make(
-        ["go to rooms", "open rooms", "show rooms", "view rooms", "rooms"],
-        "Opening rooms.", "/rooms"
-      ),
-      make(
-        ["go to bookings", "open bookings", "my bookings", "show bookings", "view bookings", "bookings"],
-        "Opening your bookings.", "/reservations"
-      ),
-      make(
-        ["go to calendar", "open calendar", "show calendar", "view calendar", "calendar"],
-        "Opening calendar.", "/calendar"
-      ),
-      make(
-        ["go to notifications", "open notifications", "show notifications", "notifications"],
-        "Opening notifications.", "/notifications"
-      ),
-      make(
-        ["manage reservations", "admin reservations", "reservation management"],
-        "Opening reservation management.", "/admin/reservations"
-      ),
-      make(
-        ["manage rooms", "admin rooms", "room management"],
-        "Opening room management.", "/admin/rooms"
-      ),
-    ];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    utterance.onend   = finish;
+    utterance.onerror = finish;
+    window.speechSynthesis.speak(utterance);
   }, []);
 
-  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
-    useSpeechRecognition({ commands });
+  // ── matchRoom ─────────────────────────────────────────────────────────────
+  const matchRoom = async (roomName) => {
+    const roomsResponse = await API.get("/rooms/");
+    const roomList = roomsResponse.data?.data ?? roomsResponse.data ?? [];
+    return roomList.find((r) =>
+      r.name.toLowerCase().includes(roomName.toLowerCase()) ||
+      roomName.toLowerCase().includes(r.name.toLowerCase())
+    );
+  };
 
-  useEffect(() => { resetTranscriptRef.current = resetTranscript; }, [resetTranscript]);
+  // ── processTranscript ─────────────────────────────────────────────────────
+  const processTranscript = useCallback(async (text) => {
+    if (!text || processingRef.current) return;
 
-  // ── Transcript watcher ─────────────────────────────────────────────────────
+    processingRef.current = true;
+    setDisplayTranscript(text);
+    SpeechRecognition.stopListening();
+
+    try {
+      const data = await parseIntent(text);
+      console.log("Intent:", data);
+
+      // ── NAVIGATE ─────────────────────────────────────────────────────────
+      if (data.intent === "navigate") {
+        const routes = {
+          dashboard:           "/dashboard",
+          rooms:               "/rooms",
+          bookings:            "/reservations",
+          calendar:            "/calendar",
+          notifications:       "/notifications",
+          manage_reservations: "/admin/reservations",
+          manage_rooms:        "/admin/rooms",
+        };
+        const path = routes[data.page];
+        if (path) {
+          const pageName = data.page.replace(/_/g, " ");
+          speak(`Opening ${pageName}.`, () => navigate(path));
+        } else {
+          speak("I'm not sure which page you mean.");
+        }
+        return;
+      }
+
+      // ── CONVERSE ──────────────────────────────────────────────────────
+      if (data.intent === "converse") {
+      speak(data.reply);
+      return;
+}
+// ── RESERVE ROOM ──────────────────────────────────────────────────────
+if (data.intent === "reserve_room") {
+
+  // Full sentence — all details present, book directly
+  if (data.room && data.date && data.start_time && data.end_time) {
+    const matched = await matchRoom(data.room);
+    if (!matched) {
+      speak(`Sorry, I couldn't find a room called ${data.room}.`);
+      return;
+    }
+    try {
+      await API.post("/reservations/", {
+        room:       matched.id,
+        start_time: toISO(data.date, data.start_time),
+        end_time:   toISO(data.date, data.end_time),
+      });
+      speak(
+        `Done! ${matched.name} has been reserved from ${data.start_time} to ${data.end_time}. Redirecting to your bookings.`,
+        () => navigate("/reservations")
+      );
+    } catch (err) {
+      const reason = err.response?.data?.error ?? err.response?.data?.detail ?? "Something went wrong.";
+      speak(`Reservation failed. ${reason}`);
+    }
+    return;
+  }
+
+  // Has some details but missing room — caught sentence too late
+  if (!data.room && (data.date || data.start_time || data.end_time)) {
+    setDisplayTranscript('Try saying: "Room 101 tomorrow from 2pm to 4pm"');
+    speak("I didn't catch that completely. Please try again.");
+    return;
+  }
+
+  // No details at all — first time asking
+  setDisplayTranscript('Try saying: "Room 101 tomorrow from 2pm to 4pm"');
+  speak("Sure! Just say the full command.");
+  return;
+}
+
+      // ── UNKNOWN ───────────────────────────────────────────────────────────
+      speak("I didn't understand that. Please try again.");
+
+    } catch (err) {
+      console.error("processTranscript error:", err);
+      speak("Something went wrong. Please try again.");
+    } finally {
+      processingRef.current = false;
+      resetTranscript();
+    }
+  }, [speak, navigate, resetTranscript]);
+
+  // ── transcript watcher ────────────────────────────────────────────────────
   useEffect(() => {
-    if (isSpeaking || !assistantActive || !transcript || cooldownRef.current) return;
+    if (!assistantActive || isSpeaking || !transcript.trim()) return;
 
     setDisplayTranscript(transcript);
-    lastTranscriptRef.current = transcript;
-    commandMatchedRef.current = false;
 
-    if (noCommandTimerRef.current) clearTimeout(noCommandTimerRef.current);
+    if (transcriptTimerRef.current) clearTimeout(transcriptTimerRef.current);
 
-    noCommandTimerRef.current = setTimeout(() => {
-      if (
-        cooldownRef.current         ||
-        commandMatchedRef.current   ||
-        !assistantActiveRef.current ||
-        isSpeakingRef.current       ||
-        lastTranscriptRef.current.trim().split(" ").length < 2
-      ) return;
-
-      setDisplayTranscript("Sorry, I didn't understand that.");
-      lastTranscriptRef.current = "";
-      resetTranscriptRef.current?.();
-      setTimeout(() => stopListeningRef.current?.(), 1200);
+    transcriptTimerRef.current = setTimeout(() => {
+      if (transcript.trim().split(" ").length < 2) return;
+      processTranscript(transcript.trim());
     }, 900);
-  }, [transcript, isSpeaking, assistantActive]);
 
-  // ── Mic restart cleanup ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!listening) return;
-    restartPendingRef.current = false;
-    resetTranscriptRef.current?.();
-    lastTranscriptRef.current = "";
-    commandMatchedRef.current = false;
-    if (noCommandTimerRef.current) clearTimeout(noCommandTimerRef.current);
-    if (!statusMessage) setDisplayTranscript("");
-    startCooldown(500);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listening]);
+    return () => clearTimeout(transcriptTimerRef.current);
+  }, [transcript, assistantActive, isSpeaking, processTranscript]);
 
-  // ── Status message auto-clear ──────────────────────────────────────────────
+  // ── auto-restart mic if it drops ──────────────────────────────────────────
   useEffect(() => {
-    if (!statusMessage) return;
-    const t = setTimeout(() => setStatusMessage(""), 3000);
+    if (!assistantActive || listening || isSpeaking || processingRef.current) return;
+    const t = setTimeout(() => {
+      SpeechRecognition.startListening({ continuous: true, language: "en-US" });
+    }, 600);
     return () => clearTimeout(t);
-  }, [statusMessage]);
+  }, [assistantActive, listening, isSpeaking]);
 
-  // ── Browser support check ──────────────────────────────────────────────────
+  // ── browser support check ─────────────────────────────────────────────────
   useEffect(() => {
     if (!browserSupportsSpeechRecognition) {
-      alert("Browser does not support speech recognition.");
+      alert("Your browser doesn't support speech recognition. Try Chrome.");
     }
   }, [browserSupportsSpeechRecognition]);
 
-  // ── Auto-restart when mic drops ────────────────────────────────────────────
-  useEffect(() => {
-    if (!assistantActive || listening || isSpeaking) return;
-    const t = setTimeout(resumeListening, 600);
-    return () => clearTimeout(t);
-  }, [assistantActive, listening, isSpeaking, resumeListening]);
-
-  // ── Capture recognition instance ──────────────────────────────────────────
-  useEffect(() => {
-    recognitionRef.current = SpeechRecognition.getRecognition();
-  }, []);
-
-  // ── Public API ─────────────────────────────────────────────────────────────
-  const stopListening = useCallback(() => {
-    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
-    if (noCommandTimerRef.current) clearTimeout(noCommandTimerRef.current);
-    cooldownRef.current        = false;
-    isSpeakingRef.current      = false;
-    restartPendingRef.current  = false;
-    assistantActiveRef.current = false;
-    setIsSpeaking(false);
-    setAssistantActive(false);
-    setStatusMessage("");
-    setDisplayTranscript("");
-    resetTranscriptRef.current?.();
-    lastTranscriptRef.current = "";
-    try { recognitionRef.current?.abort(); } catch (_) {}
-    SpeechRecognition.stopListening();
-  }, []);
-
-  useEffect(() => { stopListeningRef.current = stopListening; }, [stopListening]);
-
+  // ── startListening ────────────────────────────────────────────────────────
   const startListening = useCallback(() => {
     window.speechSynthesis?.cancel();
-    if (noCommandTimerRef.current) clearTimeout(noCommandTimerRef.current);
-    commandMatchedRef.current = false;
-    lastTranscriptRef.current = "";
+    resetTranscript();
+    processingRef.current      = false;
+    assistantActiveRef.current = true;
     setAssistantActive(true);
-    setStatusMessage("");
     setDisplayTranscript("");
-    resetTranscriptRef.current?.();
-    startCooldown(2500);
-    speak("I'm Listening!");
-  }, [speak, startCooldown]);
+    speak("I'm listening!");
+  }, [speak, resetTranscript]);
+
+  // ── stopListening ─────────────────────────────────────────────────────────
+  const stopListening = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    SpeechRecognition.stopListening();
+    if (transcriptTimerRef.current) clearTimeout(transcriptTimerRef.current);
+    assistantActiveRef.current = false;
+    isSpeakingRef.current      = false;
+    processingRef.current      = false;
+    setAssistantActive(false);
+    setIsSpeaking(false);
+    setDisplayTranscript("");
+    resetTranscript();
+  }, [resetTranscript]);
 
   return {
     displayTranscript,
     listening,
     isSpeaking,
     assistantActive,
-    statusMessage,
     startListening,
     stopListening,
   };
