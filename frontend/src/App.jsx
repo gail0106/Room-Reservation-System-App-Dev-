@@ -11,7 +11,10 @@ import Notifications from "./pages/Notifications";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import VoiceAssistant from "./components/VoiceAssistant";
 
+
+
 function App() {
+
   return (
     <>
     <Routes>

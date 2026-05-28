@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { invalidateRoomCache } from "../lib/parseIntent"; // 👈 add this
 
 export default function AdminRooms() {
   const navigate = useNavigate();
@@ -96,6 +97,7 @@ export default function AdminRooms() {
         await API.post("/rooms/", payload);
         setFormSuccess("Room added successfully.");
       }
+      invalidateRoomCache(); // 👈 add this
       fetchRooms();
     } catch (err) {
       setFormError(
@@ -127,6 +129,7 @@ export default function AdminRooms() {
     setDeleteSubmitting(true);
     try {
       await API.delete(`/rooms/${deletingRoom.id}/`);
+      invalidateRoomCache(); // 👈 add this
       setDeletingRoom(null);
       fetchRooms();
     } catch (err) {
