@@ -33,7 +33,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    "https://room-reservation-system-app-dev-production.up.railway.app"
 ]
 
 
