@@ -12,12 +12,13 @@ export default function Rooms() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [purpose, setPurpose] = useState("");
   const [message, setMessage] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Real-time availability state
-  const [availability, setAvailability] = useState(null); // null | "checking" | "available" | "unavailable"
+  const [availability, setAvailability] = useState(null);
   const debounceTimer = useRef(null);
 
   const getFloorNumber = (location = "") => {
@@ -46,7 +47,6 @@ export default function Rooms() {
     return () => clearInterval(interval);
   }, [fetchRooms]);
 
-  // Check availability whenever startTime or endTime changes (debounced 500ms)
   useEffect(() => {
     if (!selectedRoom || !startTime || !endTime) {
       setAvailability(null);
@@ -56,7 +56,6 @@ export default function Rooms() {
     const start = new Date(startTime);
     const end = new Date(endTime);
 
-    // Don't check if end is before or equal to start
     if (end <= start) {
       setAvailability(null);
       return;
@@ -75,8 +74,6 @@ export default function Rooms() {
           return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset/60)}:${pad(offset%60)}`;
         };
 
-        // Hit the reservations endpoint and check for overlaps locally,
-        // or use a dedicated availability endpoint if your API has one.
         const res = await API.get(`/reservations/`, {
           params: {
             room: selectedRoom.id,
@@ -87,7 +84,6 @@ export default function Rooms() {
 
         const existing = res.data?.data ?? res.data ?? [];
 
-        // Filter reservations for this room that overlap and are active
         const start = new Date(startTime);
         const end = new Date(endTime);
         const conflict = existing.some(r => {
@@ -116,15 +112,52 @@ export default function Rooms() {
     setSelectedRoom(room);
     setStartTime("");
     setEndTime("");
+    setPurpose("");
     setMessage("");
     setFormError("");
     setAvailability(null);
+  };
+
+  // ── Time restriction: 6 AM – 10 PM only ──
+  const HOUR_MIN = 6;   // 06:00
+  const HOUR_MAX = 22;  // 22:00
+
+  const isWithinAllowedHours = (datetimeStr) => {
+    if (!datetimeStr) return true;
+    const d = new Date(datetimeStr);
+    const h = d.getHours();
+    const m = d.getMinutes();
+    return (h > HOUR_MIN || (h === HOUR_MIN && m >= 0)) && (h < HOUR_MAX);
+  };
+
+  // Build the min/max datetime-local string for a given date keeping allowed bounds
+  const toLocalInputStr = (date) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  // Min = today at 06:00, Max = today at 22:00 (browser enforces per-day via step)
+  const todayAt = (hour, minute = 0) => {
+    const d = new Date();
+    d.setHours(hour, minute, 0, 0);
+    return toLocalInputStr(d);
   };
 
   const handleReserve = async (e) => {
     e.preventDefault();
     setMessage("");
     setFormError("");
+
+    // Validate time restriction before hitting the API
+    if (!isWithinAllowedHours(startTime)) {
+      setFormError("Start time must be between 6:00 AM and 10:00 PM.");
+      return;
+    }
+    if (!isWithinAllowedHours(endTime)) {
+      setFormError("End time must be between 6:00 AM and 10:00 PM.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const toISO = (val) => {
@@ -139,10 +172,12 @@ export default function Rooms() {
         room: selectedRoom.id,
         start_time: toISO(startTime),
         end_time: toISO(endTime),
+        purpose: purpose.trim(),
       });
       setMessage("Reservation submitted! Waiting for approval.");
       setStartTime("");
       setEndTime("");
+      setPurpose("");
       setAvailability(null);
       fetchRooms();
     } catch (err) {
@@ -156,14 +191,12 @@ export default function Rooms() {
     }
   };
 
-  // Availability badge config
   const availabilityBadge = {
     checking:    { bg: "#F0EFFF", color: "#5A52A8", border: "#C0BDEF", icon: "ti-loader-2", label: "Checking..." },
     available:   { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", icon: "ti-circle-check", label: "Available for this slot" },
     unavailable: { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", icon: "ti-circle-x",    label: "Not available for this slot" },
   };
 
-  // Group rooms by floor
   const groupedRooms = rooms.reduce((acc, room) => {
     const floor = room.location || "Other";
     if (!acc[floor]) acc[floor] = [];
@@ -306,7 +339,6 @@ export default function Rooms() {
                         if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#D9C9A0";
                       }}
                     >
-                      {/* Room info */}
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{
                           width: 38, height: 38,
@@ -330,7 +362,6 @@ export default function Rooms() {
                         </div>
                       </div>
 
-                      {/* Chevron only — no status badge */}
                       <i
                         className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
                         style={{ fontSize: 16, color: "#C9991A" }}
@@ -373,9 +404,10 @@ export default function Rooms() {
                         )}
 
                         <form onSubmit={handleReserve}>
+                          {/* Date/time row */}
                           <div style={{
                             display: "grid", gridTemplateColumns: "1fr 1fr",
-                            gap: 10, marginBottom: 12,
+                            gap: 10, marginBottom: 10,
                           }}>
                             {/* Start Time */}
                             <div>
@@ -390,6 +422,8 @@ export default function Rooms() {
                                 value={startTime}
                                 onChange={e => setStartTime(e.target.value)}
                                 required
+                                min={todayAt(HOUR_MIN)}
+                                max={todayAt(HOUR_MAX - 1, 59)}
                                 style={{
                                   width: "100%", padding: "7px 10px", fontSize: 13,
                                   border: "0.5px solid #D9C9A0", borderRadius: 8,
@@ -415,12 +449,58 @@ export default function Rooms() {
                                 value={endTime}
                                 onChange={e => setEndTime(e.target.value)}
                                 required
+                                min={startTime || todayAt(HOUR_MIN)}
+                                max={todayAt(HOUR_MAX)}
                                 style={{
                                   width: "100%", padding: "7px 10px", fontSize: 13,
                                   border: "0.5px solid #D9C9A0", borderRadius: 8,
                                   outline: "none", boxSizing: "border-box",
                                   background: "#FFFFFF", color: "#3A2000",
                                   fontFamily: "'Poppins', sans-serif",
+                                }}
+                                onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
+                                onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Operating hours hint */}
+                          <div style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            marginBottom: 10, marginTop: -2,
+                          }}>
+                            <i className="ti ti-clock-hour-6" style={{ fontSize: 13, color: "#C9991A" }} />
+                            <span style={{ fontSize: 11, color: "#9A7840" }}>
+                              Reservations allowed from <strong>6:00 AM</strong> to <strong>10:00 PM</strong> only.
+                            </span>
+                          </div>
+
+                          {/* Purpose field — full width */}
+                          <div style={{ marginBottom: 12 }}>
+                            <label style={{
+                              display: "block", fontSize: 12, fontWeight: 500,
+                              color: "#5A0000", marginBottom: 5,
+                            }}>
+                              Purpose <span style={{ color: "#C9991A" }}>*</span>
+                            </label>
+                            <div style={{ position: "relative" }}>
+                              <i className="ti ti-notes" style={{
+                                position: "absolute", left: 10, top: 9,
+                                fontSize: 15, color: "#B0A080", pointerEvents: "none",
+                              }} />
+                              <textarea
+                                value={purpose}
+                                onChange={e => setPurpose(e.target.value)}
+                                required
+                                rows={2}
+                                placeholder="e.g. Group study session, Faculty meeting, Club activity..."
+                                style={{
+                                  width: "100%", padding: "7px 10px 7px 32px", fontSize: 13,
+                                  border: "0.5px solid #D9C9A0", borderRadius: 8,
+                                  outline: "none", boxSizing: "border-box",
+                                  background: "#FFFFFF", color: "#3A2000",
+                                  fontFamily: "'Poppins', sans-serif",
+                                  resize: "vertical", lineHeight: 1.5,
                                 }}
                                 onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
                                 onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}

@@ -26,12 +26,8 @@ export default function AdminReservations() {
   const [activeTab, setActiveTab] = useState("pending");
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [cancelLoading, setCancelLoading] = useState(null);
-
-  // ── Approve modal ──
   const [approveTarget, setApproveTarget] = useState(null);
   const [approveLoading, setApproveLoading] = useState(false);
-
-  // ── Reject modal ──
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectLoading, setRejectLoading] = useState(false);
 
@@ -41,7 +37,6 @@ export default function AdminReservations() {
     try {
       const response = await API.get("/reservations/");
       const data = response.data?.data ?? response.data ?? [];
-      // Sort: most recently created first, oldest last
       const sorted = [...data].sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
@@ -102,7 +97,6 @@ export default function AdminReservations() {
     }
   };
 
-  // Filter preserves the already-sorted order from state
   const filtered = activeTab === "all"
     ? reservations
     : reservations.filter(r => r.status === activeTab);
@@ -112,7 +106,7 @@ export default function AdminReservations() {
     return acc;
   }, {});
 
-  // Reusable reservation summary card
+  // Reusable reservation summary card — shown in approve/reject modals
   const ReservationSummary = ({ res }) => (
     <div style={{
       background: "#FDF5DF", border: "0.5px solid #D9C9A0",
@@ -138,6 +132,14 @@ export default function AdminReservations() {
           {res.end_time ? ` → ${new Date(res.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
         </span>
       </div>
+      {res.purpose && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <i className="ti ti-notes" style={{ fontSize: 14, color: "#C9991A", flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 12, color: "#5A0000", lineHeight: 1.5 }}>
+            {res.purpose}
+          </span>
+        </div>
+      )}
     </div>
   );
 
@@ -317,6 +319,25 @@ export default function AdminReservations() {
                             </p>
                           </div>
                         </div>
+
+                        {/* Purpose pill — shown inline in the list card */}
+                        {res.purpose && (
+                          <div style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: "#F0EEFF", border: "0.5px solid #C4B8F7",
+                            borderRadius: 6, padding: "3px 8px",
+                            marginTop: 2,
+                          }}>
+                            <i className="ti ti-notes" style={{ fontSize: 11, color: "#5B3FD4" }} />
+                            <span style={{
+                              fontSize: 11, color: "#5B3FD4", fontWeight: 500,
+                              maxWidth: 340, overflow: "hidden",
+                              textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                              {res.purpose}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Status + Actions */}
@@ -329,7 +350,6 @@ export default function AdminReservations() {
                           {s.label}
                         </span>
 
-                        {/* Approve + Reject — pending only */}
                         {isPending && (
                           <>
                             <button
@@ -346,7 +366,6 @@ export default function AdminReservations() {
                             >
                               <i className="ti ti-check" /> Approve
                             </button>
-
                             <button
                               onClick={() => setRejectTarget(res)}
                               style={{
@@ -364,7 +383,6 @@ export default function AdminReservations() {
                           </>
                         )}
 
-                        {/* Cancel — approved only */}
                         {isApproved && (
                           <button
                             onClick={() => setConfirmCancelId(isConfirming ? null : res.id)}
@@ -459,7 +477,7 @@ export default function AdminReservations() {
             onClick={e => e.stopPropagation()}
             style={{
               background: "#FFFFFF", borderRadius: 16,
-              width: "100%", maxWidth: 400,
+              width: "100%", maxWidth: 420,
               boxShadow: "0 8px 32px rgba(30,125,75,0.15)",
               border: "0.5px solid #A8DFC1",
               animation: "fadeIn 0.18s ease",
@@ -487,7 +505,6 @@ export default function AdminReservations() {
                 <i className="ti ti-x" />
               </button>
             </div>
-
             <div style={{ padding: "1.25rem" }}>
               <div style={{
                 width: 52, height: 52, borderRadius: "50%",
@@ -561,7 +578,7 @@ export default function AdminReservations() {
             onClick={e => e.stopPropagation()}
             style={{
               background: "#FFFFFF", borderRadius: 16,
-              width: "100%", maxWidth: 400,
+              width: "100%", maxWidth: 420,
               boxShadow: "0 8px 32px rgba(139,0,0,0.15)",
               border: "0.5px solid #F7C1C1",
               animation: "fadeIn 0.18s ease",
@@ -589,7 +606,6 @@ export default function AdminReservations() {
                 <i className="ti ti-x" />
               </button>
             </div>
-
             <div style={{ padding: "1.25rem" }}>
               <div style={{
                 width: 52, height: 52, borderRadius: "50%",
