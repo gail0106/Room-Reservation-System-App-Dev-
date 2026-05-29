@@ -1,3 +1,6 @@
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-@n@fxidx1bnus+8cjylks&xf)^o@u*nm5-$3xzjhpdyi%5_@55'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
