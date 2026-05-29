@@ -2,154 +2,104 @@ import { createGroq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import API from "../api/axios";
 
-const groq = createGroq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-});
+const groq1 = createGroq({ apiKey: import.meta.env.VITE_GROQ_API_KEY });
+const groq2 = createGroq({ apiKey: import.meta.env.VITE_GROQ_API_KEY_2 });
 
-// Fetches room list once and caches it for the session
-let cachedRooms = null;
+let cachedRooms     = null;
+let cachedRoomsFull = null;
 
 async function getRoomList() {
   if (cachedRooms) return cachedRooms;
   try {
     const res  = await API.get("/rooms/");
     const data = res.data?.data ?? res.data ?? [];
-    cachedRooms = data.map((r) => r.name); // ["Room 101", "Room 102", ...]
+    cachedRoomsFull = data;                    // full objects for matchRoom
+    cachedRooms     = data.map((r) => r.name); // names for prompt
     return cachedRooms;
   } catch {
-    return []; // fail silently, Groq will handle unknown rooms
+    return [];
   }
 }
 
+export async function getRoomListWithDetails() {
+  if (cachedRoomsFull) return cachedRoomsFull;
+  await getRoomList();
+  return cachedRoomsFull ?? [];
+}
+
 function buildSystemPrompt(rooms) {
-  const roomList    = rooms.join(", ");                // "Room 101, Room 102, Room 201, Room 202"
-  const roomNumbers = rooms.map((r) => r.replace("Room ", "")).join(", "); // "101, 102, 201, 202"
+  const roomList    = rooms.join(", ");
+  const roomNumbers = rooms.map((r) => r.replace("Room ", "")).join(", ");
 
-  return `
-You are an intent parser for a room reservation system.
-Extract the user's intent from their voice command.
-Respond ONLY with a valid JSON object. No explanation. No markdown. No backticks.
+  return `You are a voice intent parser for a room reservation system. Reply ONLY with valid JSON, no markdown.
 
-Today's date is ${new Date().toISOString().split("T")[0]}.
-Current time is ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}.
+Today: ${new Date().toISOString().split("T")[0]}
 
-Possible response shapes:
+INTENTS:
 
-For navigation:
-{ "intent": "navigate", "page": "dashboard" | "rooms" | "bookings" | "calendar" | "notifications" | "manage_reservations" | "manage_rooms" }
+1. navigate → { "intent": "navigate", "page": "dashboard"|"rooms"|"bookings"|"calendar"|"notifications"|"manage_reservations"|"manage_rooms" }
 
-Use "manage_reservations" when the user says things like:
-"manage reservations", "admin reservations", "reservation management"
-Use "manage_rooms" when the user says things like:
-"manage rooms", "admin rooms", "room management"
-Use "bookings" when the user says things like:
-"my bookings", "my reservations", "view bookings"
+2. reserve_room (full) → { "intent": "reserve_room", "room": "Room 101", "date": "YYYY-MM-DD", "start_time": "HH:MM", "end_time": "HH:MM", "purpose": "<extracted or Voice reservation>" }
+   reserve_room (no details) → { "intent": "reserve_room", "room": null, "date": null, "start_time": null, "end_time": null, "purpose": null }
 
-For reservation WITH full details (room + date + BOTH start and end time present):
-{ "intent": "reserve_room", "room": "<room name>", "date": "<YYYY-MM-DD>", "start_time": "<HH:MM>", "end_time": "<HH:MM>" }
+3. converse → { "intent": "converse", "reply": "<1-2 sentence spoken reply>" }
 
-For reservation WITHOUT full details:
-{ "intent": "reserve_room", "room": null, "date": null, "start_time": null, "end_time": null }
+4. unknown → { "intent": "unknown" }
 
-Use reserve_room with nulls when the user says things like:
-"reserve a room", "book a room", "can I reserve", "can I book",
-"I want to make a reservation", "can I make a reservation",
-"I'd like to book a room", "make a reservation", "I want to reserve",
-"how do I reserve", "how do I book", "reserve", "book"
-
-=== ROOM EXTRACTION RULES ===
-Available rooms: ${roomList}
-Valid room numbers: ${roomNumbers}
-
-The user may say the room number in many ways — normalize all of them to the format "Room <number>":
-- Spoken digits: "one oh one" → "101", "two oh two" → "202", "three oh one" → "301"
-- Any number the user says that matches a valid room number should be prefixed with "Room"
-- "room 101", "room one oh one", "101", "one oh one" → "Room 101"
-- The room may appear anywhere in the sentence.
-- If the room number mentioned does not match any valid room, set room to null.
-
-=== DATE EXTRACTION RULES ===
-Always resolve relative dates using today's date (${new Date().toISOString().split("T")[0]}).
-- "today" → today's date
-- "tomorrow" → tomorrow's date
-- "the day after tomorrow" → 2 days from today
-- "next Monday/Tuesday/..." → the upcoming weekday
-- "this Friday" → the nearest upcoming Friday
-- "May 30", "June 5th", etc. → resolve to the correct YYYY-MM-DD
-- If no year is mentioned, assume the current or next occurrence of that date.
-The date may appear anywhere in the sentence.
-
-=== TIME EXTRACTION RULES ===
-CRITICAL: You must extract exactly TWO times — a start time and an end time.
-Always return times in 24-hour HH:MM format.
-- "2pm" → "14:00", "9am" → "09:00", "noon" → "12:00", "midnight" → "00:00"
-- "half past 2" → "14:30", "quarter to 3" → "14:45", "2:30pm" → "14:30"
-- The FIRST time mentioned is ALWAYS start_time.
-- The SECOND time mentioned is ALWAYS end_time.
-- Words like "to", "until", "till", "through", "-" separate start from end.
-- "from 2 to 4" → start: 14:00, end: 16:00
-- "9am until 5pm" → start: 09:00, end: 17:00
-- "between 10 and 12" → start: 10:00, end: 12:00
-- If only ONE time is mentioned, start_time is set and end_time is null.
-- NEVER guess or infer a missing end time. If end_time is missing, return all nulls.
-
-=== JUMBLED ORDER HANDLING ===
-The user may say details in any order. Examples:
-- "tomorrow room 101 9am to 5pm" → still valid
-- "from 2 to 4 book room 202 on Friday" → still valid
-- "room one oh one next Monday 10am to noon" → still valid
-- "9am to 5pm for room 201 tomorrow" → still valid
-Extract each piece independently regardless of sentence order.
-
-=== VALIDATION ===
-Only return a full reserve_room object if ALL of these are present:
-1. A valid room from the available rooms list
-2. A valid date
-3. A valid start_time
-4. A valid end_time (must be explicitly stated — never infer it)
-If ANY of these is missing, return reserve_room with all nulls.
-
-For casual conversation, greetings, thanks, compliments, questions about yourself:
-{ "intent": "converse", "reply": "<your reply here>" }
-
-Use converse for things like:
-"thank you", "thanks", "you're great", "good job", "nice", "hello", "hi",
-"how are you", "what can you do", "who are you", "what's your name",
-"bye", "goodbye", "see you", "that's all", "okay thanks",
-"you're helpful", "awesome", "cool", "wow", "great",
-"can you help me", "what do you do", "help"
-
-Rules for converse replies:
-- Keep replies short — 1 to 2 sentences max, meant to be spoken out loud.
-- Be warm, friendly, and natural. Like a helpful assistant, not a robot.
-- Never mention that you are an AI or a language model.
-- Vary your responses — don't always say "No problem!" for thanks.
-- For goodbyes, say something like "See you later!" or "Come back anytime!"
-- For greetings, respond warmly and mention you can help with rooms or navigation.
-- For "what can you do" or "help", briefly explain you can navigate pages and reserve rooms by voice.
-
-For anything else:
-{ "intent": "unknown" }
-`;
+RULES:
+Rooms: ${roomList} (numbers: ${roomNumbers}). Spoken digits like "one oh one" = 101. Invalid room = null.
+Dates: resolve relative dates (tomorrow, next Monday, this Friday) using today. Any sentence order.
+Times: 24h format. First time = start_time, second = end_time. Both required or return all nulls. Never infer end_time.
+Purpose: extract what follows "for", "for a", "to use for", "para sa" (e.g. "for a meeting" → "meeting", "para sa klase" → "klase"). If none mentioned, use "Voice reservation".
+Language: English and Filipino. "bukas"=tomorrow, "ngayon"=today, "mula"=from, "hanggang"=to/until, "para sa"=for, "i-book/mag-reserve/i-reserve"=reserve, "buksan/pumunta sa"=navigate, "salamat"=thanks. Reply in same language as user.
+Reserve trigger phrases: "book/reserve a room", "can I book/reserve", "make a reservation", "mag-reserve ng room" → return nulls version.
+Converse: greetings, thanks, bye, compliments, "what can you do", "help", "salamat", "kamusta". Short warm replies in same language as user, never say you're an AI.
+Navigate "manage_reservations": "manage reservations", "admin reservations". "manage_rooms": "manage rooms", "admin rooms". "bookings": "my bookings", "my reservations".
+Validation: only return full reserve_room if room + date + start_time + end_time all present. Otherwise all nulls.`;
+}
+async function tryGenerate(client, system, transcript) {
+  const { text } = await generateText({
+    model: client("llama-3.3-70b-versatile"),
+    system,
+    prompt: transcript,
+    temperature: 0.7,
+    maxTokens: 120,
+  });
+  const cleaned = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(cleaned);
 }
 
 export async function parseIntent(transcript) {
   const rooms  = await getRoomList();
   const system = buildSystemPrompt(rooms);
 
-  const { text } = await generateText({
-    model: groq("llama-3.3-70b-versatile"),
-    system,
-    prompt: transcript,
-    temperature: 0.7,
-  });
+  try {
+    return await tryGenerate(groq1, system, transcript);
+  } catch (err) {
+    // Check all possible shapes the rate limit error can take
+    const message = err?.message ?? err?.cause?.message ?? "";
+    const status  = err?.status ?? err?.cause?.status ?? err?.statusCode ?? 0;
 
-  const cleaned = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(cleaned);
+    const isRateLimit =
+      status === 429 ||
+      message.includes("Rate limit") ||
+      message.includes("429") ||
+      message.includes("Too Many Requests");
+
+    const isMissingKey =
+      message.includes("API key is missing") ||
+      message.includes("AI_LoadAPIKeyError");
+
+    if (isRateLimit && !isMissingKey) {
+      console.warn("Primary key rate limited, switching to backup key...");
+      return await tryGenerate(groq2, system, transcript);
+    }
+
+    throw err;
+  }
 }
 
-// Call this after a successful reservation or room management action
-// so the cache refreshes and picks up any new rooms
 export function invalidateRoomCache() {
-  cachedRooms = null;
+  cachedRooms     = null;
+  cachedRoomsFull = null;
 }

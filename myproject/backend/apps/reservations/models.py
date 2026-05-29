@@ -26,6 +26,8 @@ class Reservation(models.Model):
 
     end_time = models.DateTimeField()
 
+    purpose = models.TextField(blank=False, default='')
+
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

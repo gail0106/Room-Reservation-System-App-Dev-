@@ -1,15 +1,21 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
-import { parseIntent } from "../lib/parseIntent";
+import { parseIntent, getRoomListWithDetails } from "../lib/parseIntent";
 import API from "../api/axios";
 
-// ── ISO helper ────────────────────────────────────────────────────────────
 const toISO = (dateStr, timeStr) => {
   const date = new Date(`${dateStr}T${timeStr}`);
   const offset = -date.getTimezoneOffset();
   const sign = offset >= 0 ? "+" : "-";
   const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset / 60)}:${pad(offset % 60)}`;
+};
+
+const toReadableTime = (time) => {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "pm" : "am";
+  const hour   = h % 12 || 12;
+  return m === 0 ? `${hour}${period}` : `${hour}:${String(m).padStart(2, "0")}${period}`;
 };
 
 export default function useVoiceCommands(navigate) {
@@ -56,15 +62,14 @@ export default function useVoiceCommands(navigate) {
     window.speechSynthesis.speak(utterance);
   }, []);
 
-  // ── matchRoom ─────────────────────────────────────────────────────────────
-  const matchRoom = async (roomName) => {
-    const roomsResponse = await API.get("/rooms/");
-    const roomList = roomsResponse.data?.data ?? roomsResponse.data ?? [];
+  // ── matchRoom — uses cache, no extra API call ─────────────────────────────
+  const matchRoom = useCallback(async (roomName) => {
+    const roomList = await getRoomListWithDetails();
     return roomList.find((r) =>
       r.name.toLowerCase().includes(roomName.toLowerCase()) ||
       roomName.toLowerCase().includes(r.name.toLowerCase())
     );
-  };
+  }, []);
 
   // ── processTranscript ─────────────────────────────────────────────────────
   const processTranscript = useCallback(async (text) => {
@@ -96,65 +101,84 @@ export default function useVoiceCommands(navigate) {
         } else {
           speak("I'm not sure which page you mean.");
         }
+        processingRef.current = false;
+        resetTranscript();
         return;
       }
 
-      // ── CONVERSE ──────────────────────────────────────────────────────
+      // ── CONVERSE ──────────────────────────────────────────────────────────
       if (data.intent === "converse") {
-      speak(data.reply);
-      return;
-}
-// ── RESERVE ROOM ──────────────────────────────────────────────────────
-if (data.intent === "reserve_room") {
+        speak(data.reply);
+        processingRef.current = false;
+        resetTranscript();
+        return;
+      }
 
-  // Full sentence — all details present, book directly
-  if (data.room && data.date && data.start_time && data.end_time) {
-    const matched = await matchRoom(data.room);
-    if (!matched) {
-      speak(`Sorry, I couldn't find a room called ${data.room}.`);
-      return;
-    }
-    try {
-      await API.post("/reservations/", {
-        room:       matched.id,
-        start_time: toISO(data.date, data.start_time),
-        end_time:   toISO(data.date, data.end_time),
-      });
-      speak(
-        `Done! ${matched.name} has been reserved from ${data.start_time} to ${data.end_time}. Redirecting to your bookings.`,
-        () => navigate("/reservations")
-      );
-    } catch (err) {
-      const reason = err.response?.data?.error ?? err.response?.data?.detail ?? "Something went wrong.";
-      speak(`Reservation failed. ${reason}`);
-    }
-    return;
-  }
+      // ── RESERVE ROOM ──────────────────────────────────────────────────────
+      if (data.intent === "reserve_room") {
 
-  // Has some details but missing room — caught sentence too late
-  if (!data.room && (data.date || data.start_time || data.end_time)) {
-    setDisplayTranscript('Try saying: "Room 101 tomorrow from 2pm to 4pm"');
-    speak("I didn't catch that completely. Please try again.");
-    return;
-  }
+        // No details — guide user
+        if (!data.room && !data.date && !data.start_time && !data.end_time) {
+          setDisplayTranscript('Try saying: "Reserve Room 101 on May 30 from 2pm to 4pm"');
+          speak("Sure! Just say the full command.");
+          processingRef.current = false;
+          resetTranscript();
+          return;
+        }
 
-  // No details at all — first time asking
-  setDisplayTranscript('Try saying: "Room 101 tomorrow from 2pm to 4pm"');
-  speak("Sure! Just say the full command.");
-  return;
-}
+        // Partial — caught too late
+        if (!data.room && (data.date || data.start_time || data.end_time)) {
+          setDisplayTranscript('Try saying: "Reserve Room 101 on May 30 from 2pm to 4pm"');
+          speak("I didn't catch that completely. Please try again.");
+          processingRef.current = false;
+          resetTranscript();
+          return;
+        }
+
+        // Full details — book it
+        if (data.room && data.date && data.start_time && data.end_time) {
+          const matched = await matchRoom(data.room);
+          if (!matched) {
+            speak(`Sorry, I couldn't find a room called ${data.room}.`);
+            processingRef.current = false;
+            resetTranscript();
+            return;
+          }
+          try {
+            await API.post("/reservations/", {
+              room:       matched.id,
+              start_time: toISO(data.date, data.start_time),
+              end_time:   toISO(data.date, data.end_time),
+              purpose:    data.purpose,
+            });
+            resetTranscript();
+            processingRef.current = false;
+            speak(
+              `Done! ${matched.name} has been reserved from ${toReadableTime(data.start_time)} to ${toReadableTime(data.end_time)}. Redirecting to your bookings.`,
+              () => navigate("/reservations")
+            );
+          } catch (err) {
+            const reason = err.response?.data?.error ?? err.response?.data?.detail ?? "Something went wrong.";
+            speak(`Reservation failed. ${reason}`);
+            processingRef.current = false;
+            resetTranscript();
+          }
+          return;
+        }
+      }
 
       // ── UNKNOWN ───────────────────────────────────────────────────────────
       speak("I didn't understand that. Please try again.");
+      processingRef.current = false;
+      resetTranscript();
 
     } catch (err) {
       console.error("processTranscript error:", err);
       speak("Something went wrong. Please try again.");
-    } finally {
       processingRef.current = false;
       resetTranscript();
     }
-  }, [speak, navigate, resetTranscript]);
+  }, [speak, navigate, resetTranscript, matchRoom]);
 
   // ── transcript watcher ────────────────────────────────────────────────────
   useEffect(() => {

@@ -24,9 +24,12 @@ export default function AdminReservations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
-  const [actionLoading, setActionLoading] = useState(null);
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [cancelLoading, setCancelLoading] = useState(null);
+  const [approveTarget, setApproveTarget] = useState(null);
+  const [approveLoading, setApproveLoading] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -34,7 +37,10 @@ export default function AdminReservations() {
     try {
       const response = await API.get("/reservations/");
       const data = response.data?.data ?? response.data ?? [];
-      setReservations(data);
+      const sorted = [...data].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+      setReservations(sorted);
     } catch {
       setError("Failed to load reservations.");
     } finally {
@@ -44,15 +50,31 @@ export default function AdminReservations() {
 
   useEffect(() => { fetchReservations(); }, []);
 
-  const handleAction = async (id, status) => {
-    setActionLoading(id + status);
+  const handleApproveConfirm = async () => {
+    if (!approveTarget) return;
+    setApproveLoading(true);
     try {
-      await API.patch(`/reservations/${id}/approve/`, { status });
+      await API.patch(`/reservations/${approveTarget.id}/approve/`, { status: "approved" });
+      setApproveTarget(null);
       fetchReservations();
     } catch (err) {
-      alert(err.response?.data?.detail ?? "Action failed.");
+      alert(err.response?.data?.detail ?? "Failed to approve reservation.");
     } finally {
-      setActionLoading(null);
+      setApproveLoading(false);
+    }
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectTarget) return;
+    setRejectLoading(true);
+    try {
+      await API.patch(`/reservations/${rejectTarget.id}/approve/`, { status: "rejected" });
+      setRejectTarget(null);
+      fetchReservations();
+    } catch (err) {
+      alert(err.response?.data?.detail ?? "Failed to reject reservation.");
+    } finally {
+      setRejectLoading(false);
     }
   };
 
@@ -84,11 +106,52 @@ export default function AdminReservations() {
     return acc;
   }, {});
 
+  // Reusable reservation summary card — shown in approve/reject modals
+  const ReservationSummary = ({ res }) => (
+    <div style={{
+      background: "#FDF5DF", border: "0.5px solid #D9C9A0",
+      borderRadius: 10, padding: "0.85rem 1rem",
+      marginBottom: 16, display: "flex", flexDirection: "column", gap: 8,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <i className="ti ti-building" style={{ fontSize: 14, color: "#C9991A", flexShrink: 0 }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#1A5CA8" }}>
+          {res.room_name ?? `Room #${res.room}`}
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <i className="ti ti-user" style={{ fontSize: 14, color: "#C9991A", flexShrink: 0 }} />
+        <span style={{ fontSize: 12, color: "#5A0000" }}>
+          {res.user_username ?? res.user}
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <i className="ti ti-clock" style={{ fontSize: 14, color: "#C9991A", flexShrink: 0 }} />
+        <span style={{ fontSize: 12, color: "#5A0000" }}>
+          {res.start_time ? new Date(res.start_time).toLocaleString() : "—"}
+          {res.end_time ? ` → ${new Date(res.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+        </span>
+      </div>
+      {res.purpose && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <i className="ti ti-notes" style={{ fontSize: 14, color: "#C9991A", flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 12, color: "#5A0000", lineHeight: 1.5 }}>
+            {res.purpose}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
   if (role !== "admin") return null;
 
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'); * { font-family: 'Poppins', sans-serif; }`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
 
       {/* Header */}
       <header style={{
@@ -256,6 +319,25 @@ export default function AdminReservations() {
                             </p>
                           </div>
                         </div>
+
+                        {/* Purpose pill — shown inline in the list card */}
+                        {res.purpose && (
+                          <div style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: "#F0EEFF", border: "0.5px solid #C4B8F7",
+                            borderRadius: 6, padding: "3px 8px",
+                            marginTop: 2,
+                          }}>
+                            <i className="ti ti-notes" style={{ fontSize: 11, color: "#5B3FD4" }} />
+                            <span style={{
+                              fontSize: 11, color: "#5B3FD4", fontWeight: 500,
+                              maxWidth: 340, overflow: "hidden",
+                              textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                              {res.purpose}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Status + Actions */}
@@ -268,18 +350,16 @@ export default function AdminReservations() {
                           {s.label}
                         </span>
 
-                        {/* Approve / Reject — pending only */}
                         {isPending && (
                           <>
                             <button
-                              disabled={actionLoading === res.id + "approved"}
-                              onClick={() => handleAction(res.id, "approved")}
+                              onClick={() => setApproveTarget(res)}
                               style={{
                                 padding: "6px 12px", background: "#EDFAF3",
                                 color: "#1E7D4B", border: "0.5px solid #A8DFC1",
                                 borderRadius: 8, fontSize: 12, fontWeight: 500,
                                 cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
-                                fontFamily: "'Poppins', sans-serif",
+                                fontFamily: "'Poppins', sans-serif", transition: "background 0.15s",
                               }}
                               onMouseEnter={e => e.currentTarget.style.background = "#d4f5e5"}
                               onMouseLeave={e => e.currentTarget.style.background = "#EDFAF3"}
@@ -287,14 +367,13 @@ export default function AdminReservations() {
                               <i className="ti ti-check" /> Approve
                             </button>
                             <button
-                              disabled={actionLoading === res.id + "rejected"}
-                              onClick={() => handleAction(res.id, "rejected")}
+                              onClick={() => setRejectTarget(res)}
                               style={{
                                 padding: "6px 12px", background: "#FCEBEB",
                                 color: "#A32D2D", border: "0.5px solid #F7C1C1",
                                 borderRadius: 8, fontSize: 12, fontWeight: 500,
                                 cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
-                                fontFamily: "'Poppins', sans-serif",
+                                fontFamily: "'Poppins', sans-serif", transition: "background 0.15s",
                               }}
                               onMouseEnter={e => e.currentTarget.style.background = "#fad8d8"}
                               onMouseLeave={e => e.currentTarget.style.background = "#FCEBEB"}
@@ -304,12 +383,12 @@ export default function AdminReservations() {
                           </>
                         )}
 
-                        {/* Cancel — approved only */}
                         {isApproved && (
                           <button
                             onClick={() => setConfirmCancelId(isConfirming ? null : res.id)}
                             style={{
-                              padding: "6px 12px", background: isConfirming ? "#F5E8E8" : "none",
+                              padding: "6px 12px",
+                              background: isConfirming ? "#F5E8E8" : "none",
                               color: "#8B0000", border: "0.5px solid #D9A0A0",
                               borderRadius: 8, fontSize: 12, fontWeight: 500,
                               cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
@@ -325,7 +404,7 @@ export default function AdminReservations() {
                     </div>
                   </div>
 
-                  {/* Inline confirmation strip — approved cancel only */}
+                  {/* Inline cancel confirmation strip */}
                   {isConfirming && (
                     <div style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -382,6 +461,208 @@ export default function AdminReservations() {
           </div>
         )}
       </div>
+
+      {/* ── Approve Confirmation Modal ── */}
+      {approveTarget && (
+        <div
+          onClick={() => { if (!approveLoading) setApproveTarget(null); }}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 100, padding: "1rem",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#FFFFFF", borderRadius: 16,
+              width: "100%", maxWidth: 420,
+              boxShadow: "0 8px 32px rgba(30,125,75,0.15)",
+              border: "0.5px solid #A8DFC1",
+              animation: "fadeIn 0.18s ease",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{
+              background: "#1E7D4B", borderRadius: "16px 16px 0 0",
+              padding: "1rem 1.25rem",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="ti ti-circle-check" style={{ fontSize: 18, color: "#FFFFFF" }} />
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>Approve Reservation</span>
+              </div>
+              <button
+                onClick={() => { if (!approveLoading) setApproveTarget(null); }}
+                style={{
+                  background: "rgba(255,255,255,0.15)", border: "none",
+                  borderRadius: 6, width: 28, height: 28,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#FFFFFF",
+                }}
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+            <div style={{ padding: "1.25rem" }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: "50%",
+                background: "#EDFAF3", margin: "0 auto 14px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                border: "0.5px solid #A8DFC1",
+              }}>
+                <i className="ti ti-circle-check" style={{ fontSize: 26, color: "#1E7D4B" }} />
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, textAlign: "center", margin: "0 0 6px", color: "#1E4D35" }}>
+                Approve this reservation?
+              </p>
+              <p style={{ fontSize: 12, color: "#7A6030", textAlign: "center", margin: "0 0 16px", lineHeight: 1.6 }}>
+                This will confirm the booking for
+              </p>
+              <ReservationSummary res={approveTarget} />
+              <p style={{ fontSize: 11, color: "#B0A080", textAlign: "center", margin: "0 0 16px" }}>
+                The user will be notified about this approval.
+              </p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={handleApproveConfirm}
+                  disabled={approveLoading}
+                  style={{
+                    flex: 1, padding: "9px 0",
+                    background: approveLoading ? "#A8DFC1" : "#1E7D4B",
+                    color: "#FFFFFF", border: "none", borderRadius: 8,
+                    fontSize: 13, fontWeight: 600,
+                    cursor: approveLoading ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    fontFamily: "'Poppins', sans-serif", transition: "background 0.15s",
+                  }}
+                  onMouseEnter={e => { if (!approveLoading) e.currentTarget.style.background = "#155C38"; }}
+                  onMouseLeave={e => { if (!approveLoading) e.currentTarget.style.background = "#1E7D4B"; }}
+                >
+                  <i className="ti ti-circle-check" />
+                  {approveLoading ? "Approving..." : "Yes, Approve"}
+                </button>
+                <button
+                  onClick={() => { if (!approveLoading) setApproveTarget(null); }}
+                  disabled={approveLoading}
+                  style={{
+                    flex: 1, padding: "9px 0", background: "none",
+                    border: "0.5px solid #D9C9A0", borderRadius: 8,
+                    fontSize: 13, color: "#7A6030", cursor: "pointer",
+                    fontFamily: "'Poppins', sans-serif", fontWeight: 500,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#EDFAF3"; e.currentTarget.style.borderColor = "#A8DFC1"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "#D9C9A0"; }}
+                >
+                  Keep Pending
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reject Confirmation Modal ── */}
+      {rejectTarget && (
+        <div
+          onClick={() => { if (!rejectLoading) setRejectTarget(null); }}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 100, padding: "1rem",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#FFFFFF", borderRadius: 16,
+              width: "100%", maxWidth: 420,
+              boxShadow: "0 8px 32px rgba(139,0,0,0.15)",
+              border: "0.5px solid #F7C1C1",
+              animation: "fadeIn 0.18s ease",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{
+              background: "#8B0000", borderRadius: "16px 16px 0 0",
+              padding: "1rem 1.25rem",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="ti ti-circle-x" style={{ fontSize: 18, color: "#F5D98A" }} />
+                <span style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>Reject Reservation</span>
+              </div>
+              <button
+                onClick={() => { if (!rejectLoading) setRejectTarget(null); }}
+                style={{
+                  background: "rgba(255,255,255,0.12)", border: "none",
+                  borderRadius: 6, width: 28, height: 28,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: "#FFFFFF",
+                }}
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+            <div style={{ padding: "1.25rem" }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: "50%",
+                background: "#FCEBEB", margin: "0 auto 14px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                border: "0.5px solid #F7C1C1",
+              }}>
+                <i className="ti ti-alert-triangle" style={{ fontSize: 26, color: "#A32D2D" }} />
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, textAlign: "center", margin: "0 0 6px", color: "#5A0000" }}>
+                Reject this reservation?
+              </p>
+              <p style={{ fontSize: 12, color: "#7A6030", textAlign: "center", margin: "0 0 16px", lineHeight: 1.6 }}>
+                This will deny the booking for
+              </p>
+              <ReservationSummary res={rejectTarget} />
+              <p style={{ fontSize: 11, color: "#B0A080", textAlign: "center", margin: "0 0 16px" }}>
+                The user will be notified about this rejection.
+              </p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={handleRejectConfirm}
+                  disabled={rejectLoading}
+                  style={{
+                    flex: 1, padding: "9px 0",
+                    background: rejectLoading ? "#D9A0A0" : "#8B0000",
+                    color: "#FFFFFF", border: "none", borderRadius: 8,
+                    fontSize: 13, fontWeight: 600,
+                    cursor: rejectLoading ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    fontFamily: "'Poppins', sans-serif", transition: "background 0.15s",
+                  }}
+                  onMouseEnter={e => { if (!rejectLoading) e.currentTarget.style.background = "#C9991A"; }}
+                  onMouseLeave={e => { if (!rejectLoading) e.currentTarget.style.background = "#8B0000"; }}
+                >
+                  <i className="ti ti-circle-x" />
+                  {rejectLoading ? "Rejecting..." : "Yes, Reject"}
+                </button>
+                <button
+                  onClick={() => { if (!rejectLoading) setRejectTarget(null); }}
+                  disabled={rejectLoading}
+                  style={{
+                    flex: 1, padding: "9px 0", background: "none",
+                    border: "0.5px solid #D9C9A0", borderRadius: 8,
+                    fontSize: 13, color: "#8B0000", cursor: "pointer",
+                    fontFamily: "'Poppins', sans-serif", fontWeight: 500,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#F5E8E8"; e.currentTarget.style.borderColor = "#D9A0A0"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "#D9C9A0"; }}
+                >
+                  Keep Pending
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

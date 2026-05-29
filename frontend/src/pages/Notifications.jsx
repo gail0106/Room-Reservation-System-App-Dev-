@@ -369,6 +369,25 @@ export default function Notifications() {
                   </div>
                 )}
 
+                {/* Purpose */}
+                {selectedNotif.purpose && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      background: "#F0EEFF", border: "0.5px solid #C4B8F7",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      <i className="ti ti-notes" style={{ fontSize: 15, color: "#5B3FD4" }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 10, color: "#B0A080", margin: "0 0 1px", textTransform: "uppercase", letterSpacing: "0.04em" }}>Purpose</p>
+                      <p style={{ fontSize: 13, fontWeight: 500, margin: 0, color: "#3A2000", lineHeight: 1.5 }}>
+                        {selectedNotif.purpose}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Fallback */}
                 {!selectedNotif.room_name && !selectedNotif.start_time && (
                   <p style={{ fontSize: 12, color: "#B0A080", margin: 0, textAlign: "center" }}>
