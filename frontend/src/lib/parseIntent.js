@@ -2,23 +2,29 @@ import { createGroq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import API from "../api/axios";
 
-const groq = createGroq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-});
+const groq1 = createGroq({ apiKey: import.meta.env.VITE_GROQ_API_KEY });
+const groq2 = createGroq({ apiKey: import.meta.env.VITE_GROQ_API_KEY_2 });
 
-// Fetches room list once and caches it for the session
-let cachedRooms = null;
+let cachedRooms     = null;
+let cachedRoomsFull = null;
 
 async function getRoomList() {
   if (cachedRooms) return cachedRooms;
   try {
     const res  = await API.get("/rooms/");
     const data = res.data?.data ?? res.data ?? [];
-    cachedRooms = data.map((r) => r.name); // ["Room 101", "Room 102", ...]
+    cachedRoomsFull = data;                    // full objects for matchRoom
+    cachedRooms     = data.map((r) => r.name); // names for prompt
     return cachedRooms;
   } catch {
-    return []; // fail silently, Groq will handle unknown rooms
+    return [];
   }
+}
+
+export async function getRoomListWithDetails() {
+  if (cachedRoomsFull) return cachedRoomsFull;
+  await getRoomList();
+  return cachedRoomsFull ?? [];
 }
 
 function buildSystemPrompt(rooms) {
@@ -44,30 +50,56 @@ RULES:
 Rooms: ${roomList} (numbers: ${roomNumbers}). Spoken digits like "one oh one" = 101. Invalid room = null.
 Dates: resolve relative dates (tomorrow, next Monday, this Friday) using today. Any sentence order.
 Times: 24h format. First time = start_time, second = end_time. Both required or return all nulls. Never infer end_time.
-Purpose: extract what follows "for", "for a", "to use for" (e.g. "for a meeting" → "meeting", "for a class" → "class"). If none mentioned, use "Voice reservation".
-Reserve trigger phrases: "book/reserve a room", "can I book/reserve", "make a reservation" → return nulls version.
-Converse: greetings, thanks, bye, compliments, "what can you do", "help". Short warm replies, never say you're an AI. Vary responses. For goodbyes say "See you later!" or similar. For greetings mention you help with rooms and navigation.
+Purpose: extract what follows "for", "for a", "to use for", "para sa" (e.g. "for a meeting" → "meeting", "para sa klase" → "klase"). If none mentioned, use "Voice reservation".
+Language: English and Filipino. "bukas"=tomorrow, "ngayon"=today, "mula"=from, "hanggang"=to/until, "para sa"=for, "i-book/mag-reserve/i-reserve"=reserve, "buksan/pumunta sa"=navigate, "salamat"=thanks. Reply in same language as user.
+Reserve trigger phrases: "book/reserve a room", "can I book/reserve", "make a reservation", "mag-reserve ng room" → return nulls version.
+Converse: greetings, thanks, bye, compliments, "what can you do", "help", "salamat", "kamusta". Short warm replies in same language as user, never say you're an AI.
 Navigate "manage_reservations": "manage reservations", "admin reservations". "manage_rooms": "manage rooms", "admin rooms". "bookings": "my bookings", "my reservations".
 Validation: only return full reserve_room if room + date + start_time + end_time all present. Otherwise all nulls.`;
+}
+async function tryGenerate(client, system, transcript) {
+  const { text } = await generateText({
+    model: client("llama-3.3-70b-versatile"),
+    system,
+    prompt: transcript,
+    temperature: 0.7,
+    maxTokens: 120,
+  });
+  const cleaned = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(cleaned);
 }
 
 export async function parseIntent(transcript) {
   const rooms  = await getRoomList();
   const system = buildSystemPrompt(rooms);
 
-  const { text } = await generateText({
-    model: groq("llama-3.3-70b-versatile"),
-    system,
-    prompt: transcript,
-    temperature: 0.7,
-  });
+  try {
+    return await tryGenerate(groq1, system, transcript);
+  } catch (err) {
+    // Check all possible shapes the rate limit error can take
+    const message = err?.message ?? err?.cause?.message ?? "";
+    const status  = err?.status ?? err?.cause?.status ?? err?.statusCode ?? 0;
 
-  const cleaned = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(cleaned);
+    const isRateLimit =
+      status === 429 ||
+      message.includes("Rate limit") ||
+      message.includes("429") ||
+      message.includes("Too Many Requests");
+
+    const isMissingKey =
+      message.includes("API key is missing") ||
+      message.includes("AI_LoadAPIKeyError");
+
+    if (isRateLimit && !isMissingKey) {
+      console.warn("Primary key rate limited, switching to backup key...");
+      return await tryGenerate(groq2, system, transcript);
+    }
+
+    throw err;
+  }
 }
 
-// Call this after a successful reservation or room management action
-// so the cache refreshes and picks up any new rooms
 export function invalidateRoomCache() {
-  cachedRooms = null;
+  cachedRooms     = null;
+  cachedRoomsFull = null;
 }
