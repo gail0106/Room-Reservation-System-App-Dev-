@@ -115,6 +115,13 @@ if (data.intent === "reserve_room") {
       return;
     }
     try {
+        const payload = {
+        room:       matched.id,
+        start_time: toISO(data.date, data.start_time),
+        end_time:   toISO(data.date, data.end_time),
+        purpose:    data.purpose, // always set by Groq, no fallback needed
+      };
+    console.log("Payload being sent:", payload); // 👈 add this
       await API.post("/reservations/", {
         room:       matched.id,
         start_time: toISO(data.date, data.start_time),
@@ -125,6 +132,7 @@ if (data.intent === "reserve_room") {
         () => navigate("/reservations")
       );
     } catch (err) {
+      console.log("Error response:", err.response?.data); // 👈 add this
       const reason = err.response?.data?.error ?? err.response?.data?.detail ?? "Something went wrong.";
       speak(`Reservation failed. ${reason}`);
     }
