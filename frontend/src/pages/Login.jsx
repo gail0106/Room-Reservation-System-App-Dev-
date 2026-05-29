@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
 
@@ -8,10 +8,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   const successMessage = location.state?.message;
+
+  // Check if redirected here due to session expiry
+  useEffect(() => {
+    if (sessionStorage.getItem("sessionExpired") === "true") {
+      setSessionExpired(true);
+      sessionStorage.removeItem("sessionExpired");
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,6 +30,7 @@ export default function Login() {
     }
     setLoading(true);
     setError("");
+    setSessionExpired(false);
     try {
       const response = await API.post("auth/login/", { username, password });
 
@@ -43,7 +53,15 @@ export default function Login() {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div style={{ ...poppins, minHeight: "100vh", background: "#7A1C1C", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
         <div style={{ background: "#fff", border: "0.5px solid #C9A02A", borderRadius: 12, padding: "2rem 1.75rem", width: "100%", maxWidth: 360 }}>
 
@@ -57,6 +75,29 @@ export default function Login() {
               <p style={{ ...poppins, fontSize: 12, color: "#888", margin: 0 }}>Room Reservation System</p>
             </div>
           </div>
+
+          {/* Session expired banner */}
+          {sessionExpired && (
+            <div style={{
+              display: "flex", alignItems: "flex-start", gap: 10,
+              background: "#FFF8EC",
+              border: "0.5px solid #E0B030",
+              borderLeft: "3px solid #C9991A",
+              borderRadius: 8, padding: "10px 12px",
+              marginBottom: "1rem",
+              animation: "slideDown 0.2s ease",
+            }}>
+              <i className="ti ti-clock-exclamation" style={{ fontSize: 16, color: "#C9991A", flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <p style={{ ...poppins, fontSize: 12, fontWeight: 600, color: "#7A4F00", margin: "0 0 2px" }}>
+                  Session expired
+                </p>
+                <p style={{ ...poppins, fontSize: 11, color: "#9A6A20", margin: 0, lineHeight: 1.5 }}>
+                  You were signed out due to inactivity. Please log in again to continue.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Success message after registration */}
           {successMessage && (

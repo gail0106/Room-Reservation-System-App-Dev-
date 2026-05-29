@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ available: 0, myReservations: 0, pending: 0, todayBookings: 0 });
   const [recent, setRecent] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,7 +109,7 @@ export default function Dashboard() {
     { label: "Today's bookings", value: stats.todayBookings },
   ];
 
-  const handleLogout = () => {
+  const handleLogoutConfirm = () => {
     localStorage.clear();
     navigate("/");
   };
@@ -122,7 +123,130 @@ export default function Dashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
         * { font-family: 'Poppins', sans-serif; }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(18px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)    scale(1);    }
+        }
       `}</style>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div
+          onClick={() => setShowLogoutModal(false)}
+          style={{
+            position: "fixed", inset: 0,
+            background: "rgba(30, 10, 10, 0.45)",
+            backdropFilter: "blur(3px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000,
+            animation: "fadeIn 0.18s ease",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#FFFFFF",
+              borderRadius: 16,
+              padding: "2rem 1.75rem 1.5rem",
+              width: "100%", maxWidth: 360,
+              margin: "0 1rem",
+              boxShadow: "0 8px 32px rgba(139,0,0,0.15), 0 1.5px 6px rgba(0,0,0,0.08)",
+              border: "0.5px solid #D9C9A0",
+              animation: "slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              width: 52, height: 52,
+              background: "#FBF0F0",
+              border: "1.5px solid #E8C0C0",
+              borderRadius: 12,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              marginBottom: "1.1rem",
+            }}>
+              <i className="ti ti-logout" style={{ fontSize: 26, color: "#8B0000" }} />
+            </div>
+
+            {/* Text */}
+            <h2 style={{
+              fontSize: 16, fontWeight: 700,
+              color: "#5A0000", margin: "0 0 6px",
+            }}>
+              Sign out
+            </h2>
+            <p style={{
+              fontSize: 13, color: "#7A6030",
+              margin: "0 0 1.5rem", lineHeight: 1.55,
+            }}>
+              Are you sure you want to sign out of your account? Any unsaved changes will be lost.
+            </p>
+
+            {/* Divider */}
+            <div style={{ height: "0.5px", background: "#EDE4D4", marginBottom: "1.1rem" }} />
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                style={{
+                  flex: 1,
+                  padding: "9px 0",
+                  borderRadius: 8,
+                  border: "0.5px solid #D9C9A0",
+                  background: "#F7F3EE",
+                  color: "#5A3A00",
+                  fontSize: 13, fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif",
+                  transition: "background 0.15s, border-color 0.15s",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "#EDE4D4";
+                  e.currentTarget.style.borderColor = "#C9991A";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "#F7F3EE";
+                  e.currentTarget.style.borderColor = "#D9C9A0";
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogoutConfirm}
+                style={{
+                  flex: 1,
+                  padding: "9px 0",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#8B0000",
+                  color: "#FFFFFF",
+                  fontSize: 13, fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  transition: "background 0.15s, box-shadow 0.15s",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "#6A0000";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(139,0,0,0.30)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "#8B0000";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <i className="ti ti-logout" style={{ fontSize: 15 }} />
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header style={{
@@ -348,7 +472,7 @@ export default function Dashboard() {
 
         {/* Logout */}
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutModal(true)}
           style={{
             display: "flex", alignItems: "center", gap: 8,
             background: "none",

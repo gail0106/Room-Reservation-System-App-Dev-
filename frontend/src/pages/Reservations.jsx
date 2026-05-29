@@ -24,8 +24,9 @@ export default function MyReservations() {
     try {
       const res = await API.get("/reservations/");
       const data = res.data?.data ?? res.data ?? [];
+      // Sort: most recently created first, oldest last
       const sorted = [...data].sort(
-        (a, b) => new Date(b.start_time) - new Date(a.start_time)
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
       setReservations(sorted);
     } catch {
@@ -39,7 +40,6 @@ export default function MyReservations() {
     setCancellingId(id);
     try {
       await API.patch(`/reservations/${id}/cancel/`);
-      // Update status locally — no need for a full refetch
       setReservations(prev =>
         prev.map(r => r.id === id ? { ...r, status: "cancelled" } : r)
       );
@@ -223,7 +223,6 @@ export default function MyReservations() {
                         {status.label}
                       </span>
 
-                      {/* Cancel button — only for pending/approved */}
                       {canCancel(res.status) && (
                         <button
                           onClick={() => setConfirmId(isConfirming ? null : res.id)}

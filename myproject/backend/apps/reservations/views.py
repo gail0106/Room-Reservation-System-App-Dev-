@@ -1,20 +1,16 @@
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-
 from django.utils.timezone import now
 from datetime import timedelta
 
 from .models import Reservation
 from .serializers import ReservationSerializer, CalendarReservationSerializer
-
 from apps.accounts.permissions import IsAdmin
 from apps.notifications.services import create_notification
-
 
 
 # =========================
@@ -26,15 +22,36 @@ class ReservationListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Auto-complete expired approved reservations on every fetch
+        from apps.notifications.models import Notification as NotifModel
+
+        expired = Reservation.objects.filter(
+            status="approved",
+            end_time__lt=now()
+        )
+        for reservation in expired:
+            reservation.status = "completed"
+            reservation.save()
+            already = NotifModel.objects.filter(
+                user=reservation.user,
+                reservation=reservation,
+                notif_type="completed"
+            ).exists()
+            if not already:
+                NotifModel.objects.create(
+                    user=reservation.user,
+                    reservation=reservation,
+                    title="Reservation Completed",
+                    message=f"Your reservation for {reservation.room.name} has been completed. Thank you!",
+                    notif_type="completed"
+                )
+
         user = self.request.user
-
-        if user.role == 'admin':
+        if user.role == "admin":
             return Reservation.objects.all()
-
         return Reservation.objects.filter(user=user)
 
     def perform_create(self, serializer):
-
         room = serializer.validated_data['room']
         start_time = serializer.validated_data['start_time']
         end_time = serializer.validated_data['end_time']
@@ -73,7 +90,6 @@ class ReservationListCreateView(generics.ListCreateAPIView):
 
         reservation = serializer.save(user=self.request.user)
 
-        # notification (safe wrapper)
         try:
             create_notification(
                 user=self.request.user,
@@ -93,10 +109,8 @@ class ApproveReservationView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def patch(self, request, pk):
-
         try:
             reservation = Reservation.objects.get(pk=pk)
-
         except Reservation.DoesNotExist:
             return Response(
                 {"error": "Reservation not found"},
@@ -129,7 +143,6 @@ class ApproveReservationView(APIView):
         )
 
         serializer = ReservationSerializer(reservation)
-
         return Response({
             "message": f"Reservation {new_status} successfully",
             "data": serializer.data
@@ -144,10 +157,8 @@ class CancelReservationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
-
         try:
             reservation = Reservation.objects.get(pk=pk, user=request.user)
-
         except Reservation.DoesNotExist:
             return Response(
                 {"error": "Not found"},
@@ -181,12 +192,32 @@ class ReservationCalendarView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        # Also auto-complete here so calendar reflects current state
+        from apps.notifications.models import Notification as NotifModel
 
-        reservations = Reservation.objects.filter(status='approved')
-
-        serializer = CalendarReservationSerializer(
-            reservations,
-            many=True
+        expired = Reservation.objects.filter(
+            status="approved",
+            end_time__lt=now()
         )
+        for reservation in expired:
+            reservation.status = "completed"
+            reservation.save()
+            already = NotifModel.objects.filter(
+                user=reservation.user,
+                reservation=reservation,
+                notif_type="completed"
+            ).exists()
+            if not already:
+                NotifModel.objects.create(
+                    user=reservation.user,
+                    reservation=reservation,
+                    title="Reservation Completed",
+                    message=f"Your reservation for {reservation.room.name} has been completed. Thank you!",
+                    notif_type="completed"
+                )
 
+        reservations = Reservation.objects.filter(
+            status__in=['approved', 'completed', 'cancelled', 'rejected', 'pending']
+        )
+        serializer = CalendarReservationSerializer(reservations, many=True)
         return Response(serializer.data)
