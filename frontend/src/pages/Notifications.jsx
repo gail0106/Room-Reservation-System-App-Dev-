@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 const typeConfig = {
   pending: {
@@ -424,6 +425,8 @@ export default function Notifications() {
           </div>
         </div>
       )}
+
+      <VoiceAssistant />
     </div>
   );
 }

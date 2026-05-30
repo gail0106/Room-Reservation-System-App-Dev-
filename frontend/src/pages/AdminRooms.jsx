@@ -4,6 +4,7 @@ import API from "../api/axios";
 import { invalidateRoomCache } from "../lib/parseIntent"; // 👈 add this
 
 import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 export default function AdminRooms() {
   const navigate = useNavigate();
@@ -652,6 +653,7 @@ export default function AdminRooms() {
           </div>
         </div>
       )}
+      <VoiceAssistant />
     </div>
   );
 }

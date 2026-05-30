@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 const statusConfig = {
   approved:  { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", dot: "#1D9E75", label: "Approved"  },
@@ -386,6 +387,7 @@ export default function MyReservations() {
         )}
 
       </div>
+      <VoiceAssistant />
     </div>
   );
 }

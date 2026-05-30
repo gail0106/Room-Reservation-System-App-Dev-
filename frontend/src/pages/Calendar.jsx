@@ -5,6 +5,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import API from "../api/axios";
 
 import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 const statusColors = {
   approved:  { bg: "#1D9E75", border: "#0F6E56", light: "#EDFAF3", text: "#1E7D4B", lightBorder: "#A8DFC1" },
@@ -333,6 +334,7 @@ function Calendar() {
       </div>
 
       <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+     <VoiceAssistant />
     </div>
   );
 }

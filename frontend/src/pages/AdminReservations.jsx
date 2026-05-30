@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 
 import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 const STATUS_STYLES = {
   pending:   { bg: "#FFF4E5", color: "#854F0B", border: "#F5D9A8", label: "Pending" },
@@ -667,6 +668,7 @@ export default function AdminReservations() {
           </div>
         </div>
       )}
+      <VoiceAssistant />
     </div>
   );
 }

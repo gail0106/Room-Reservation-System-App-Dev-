@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../api/axios";
 import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 export default function Rooms() {
   const navigate = useNavigate();
@@ -730,6 +731,7 @@ export default function Rooms() {
           </div>
         )}
       </div>
+      <VoiceAssistant />
     </div>
   );
 }
