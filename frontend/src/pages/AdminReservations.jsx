@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 
+import logo from "../assets/RoomMate.png";
+
 const STATUS_STYLES = {
   pending:   { bg: "#FFF4E5", color: "#854F0B", border: "#F5D9A8", label: "Pending" },
   approved:  { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", label: "Approved" },
@@ -10,7 +12,7 @@ const STATUS_STYLES = {
   cancelled: { bg: "#F3F3F3", color: "#666666", border: "#D0D0D0", label: "Cancelled" },
 };
 
-const TABS = ["all", "pending", "approved", "rejected"];
+const TABS = ["all", "pending", "approved", "rejected", "cancelled", "completed"];
 
 export default function AdminReservations() {
   const navigate = useNavigate();
@@ -160,11 +162,13 @@ export default function AdminReservations() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "#C9991A", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <i className="ti ti-school" style={{ fontSize: 20, color: "#FFFFFF" }} />
-          </div>
+          <img
+            src={logo}
+            alt="RoomMate logo"
+            style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
+          />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>PUPSantaRosa</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>RoomMate</div>
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>

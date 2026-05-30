@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import logo from "../assets/RoomMate.png";
+import bgImage from "../assets/pupschool.png";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -35,16 +37,44 @@ export default function Register() {
   return (
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');`}</style>
-      <div style={{ ...poppins, minHeight: "100vh", background: "#7A1C1C", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-        <div style={{ background: "#fff", border: "0.5px solid #C9A02A", borderRadius: 12, padding: "2rem 1.75rem", width: "100%", maxWidth: 360 }}>
+
+      <div style={{
+        ...poppins,
+        minHeight: "100vh",
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        position: "relative",
+      }}>
+
+        {/* Dark overlay */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "rgba(90, 0, 0, 0.55)",
+        }} />
+
+        {/* Card */}
+        <div style={{
+          position: "relative",
+          background: "#fff", border: "0.5px solid #C9A02A",
+          borderRadius: 12, padding: "2rem 1.75rem",
+          width: "100%", maxWidth: 360,
+        }}>
 
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "1.75rem" }}>
-            <div style={{ width: 38, height: 38, background: "#7A1C1C", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-school" style={{ fontSize: 20, color: "#F0C040" }} />
-            </div>
+            <img
+              src={logo}
+              alt="RoomMate logo"
+              style={{ width: 42, height: 42, objectFit: "contain", flexShrink: 0 }}
+            />
             <div>
-              <p style={{ ...poppins, fontSize: 18, fontWeight: 600, color: "#7A1C1C", margin: "0 0 2px" }}>PUPSantaRosa</p>
+              <p style={{ ...poppins, fontSize: 18, fontWeight: 600, color: "#7A1C1C", margin: "0 0 2px" }}>
+                Room<span style={{ color: "#C9991A" }}>Mate</span>
+              </p>
               <p style={{ ...poppins, fontSize: 12, color: "#888", margin: 0 }}>Room Reservation System</p>
             </div>
           </div>

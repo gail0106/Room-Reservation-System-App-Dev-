@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../api/axios";
+import logo from "../assets/RoomMate.png";
 
 export default function Rooms() {
   const navigate = useNavigate();
@@ -202,11 +203,12 @@ export default function Rooms() {
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-        * { font-family: 'Poppins', sans-serif; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: spin 0.8s linear infinite; display: inline-block; }
-      `}</style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+      * { font-family: 'Poppins', sans-serif; }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+      input::placeholder { font-style: italic; color: #B0A080; }
+    `}</style>
 
       {/* ── Header ── */}
       <header style={{
@@ -215,14 +217,13 @@ export default function Rooms() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, background: "#C9991A",
-            borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <i className="ti ti-school" style={{ fontSize: 20, color: "#FFFFFF" }} />
-          </div>
+          <img
+            src={logo}
+            alt="RoomMate logo"
+            style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
+          />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>PUPSantaRosa</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>RoomMate</div>
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
@@ -247,19 +248,33 @@ export default function Rooms() {
       <div style={{ padding: "1.5rem", maxWidth: 900, margin: "0 auto" }}>
 
         <div style={{ marginBottom: "1rem" }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>
-            Available Rooms
-          </h1>
-          <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>
-            Click a room to make a reservation.
-          </p>
-        </div>
+        <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>
+          Available Rooms
+        </h1>
+        <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>
+          Click a room to make a reservation.
+        </p>
+      </div>
 
-        {/* ── Search bar ── */}
+      {/* ── Search bar ── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        marginBottom: 10,
+      }}>
+        {/* 🔍 Search emoji on the left */}
+        <span style={{
+          fontSize: 22, flexShrink: 0,
+          display: "flex", alignItems: "center",
+        }}>
+          🔍
+        </span>
+
+        {/* Search fields grid */}
         <div style={{
+          flex: 1,
           display: "grid",
           gridTemplateColumns: "1fr 1fr 1fr",
-          gap: 8, marginBottom: 10,
+          gap: 8,
         }}>
           {/* Room name */}
           <div style={{ position: "relative" }}>
@@ -269,7 +284,7 @@ export default function Rooms() {
             }} />
             <input
               type="text"
-              placeholder="Search room name..."
+              placeholder="Search room...e.g. Room 101"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
               style={inputStyle}
@@ -312,6 +327,29 @@ export default function Rooms() {
             />
           </div>
         </div>
+      </div>
+
+      {/* ── Search labels row ── */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 8, marginBottom: 14,
+        paddingLeft: 32,
+      }}>
+        {[
+          { emoji: "🚪", label: "Room Name" },
+          { emoji: "👥", label: "Min Capacity" },
+          { emoji: "🏢", label: "Floor / Location" },
+        ].map(({ emoji, label }) => (
+          <div key={label} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 11, color: "#9A7840",
+          }}>
+            <span style={{ fontSize: 13 }}>{emoji}</span>
+            {label}
+          </div>
+        ))}
+      </div>
 
         {/* ── Active filter row ── */}
         {hasSearch && (
