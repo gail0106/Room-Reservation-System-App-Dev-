@@ -3,6 +3,7 @@ import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognitio
 import { parseIntent, getRoomListWithDetails } from "../lib/parseIntent";
 import API from "../api/axios";
 
+// ── ISO helper ────────────────────────────────────────────────────────────
 const toISO = (dateStr, timeStr) => {
   const date = new Date(`${dateStr}T${timeStr}`);
   const offset = -date.getTimezoneOffset();
@@ -11,11 +12,18 @@ const toISO = (dateStr, timeStr) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset / 60)}:${pad(offset % 60)}`;
 };
 
+// ── Readable time helper ──────────────────────────────────────────────────
 const toReadableTime = (time) => {
   const [h, m] = time.split(":").map(Number);
   const period = h >= 12 ? "pm" : "am";
   const hour   = h % 12 || 12;
   return m === 0 ? `${hour}${period}` : `${hour}:${String(m).padStart(2, "0")}${period}`;
+};
+
+// ── Allowed hours check ───────────────────────────────────────────────────  
+const isAllowedTime = (timeStr) => {
+  const [h] = timeStr.split(":").map(Number);
+  return h >= 6 && h < 22;
 };
 
 export default function useVoiceCommands(navigate) {
@@ -83,6 +91,14 @@ export default function useVoiceCommands(navigate) {
       const data = await parseIntent(text);
       console.log("Intent:", data);
 
+      if (data.time_error) {
+      setDisplayTranscript("Reservations are only allowed from 6:00 AM to 10:00 PM.");
+      speak(data.time_error);
+      processingRef.current = false;
+      resetTranscript();
+      return;
+       }
+
       // ── NAVIGATE ─────────────────────────────────────────────────────────
       if (data.intent === "navigate") {
         const routes = {
@@ -144,6 +160,16 @@ export default function useVoiceCommands(navigate) {
             resetTranscript();
             return;
           }
+
+          // Reservations allowed only at 6 am to 10 pm
+          if (!isAllowedTime(data.start_time) || !isAllowedTime(data.end_time)) {
+            setDisplayTranscript("Reservations are only allowed from 6:00 AM to 10:00 PM.");
+            speak("Sorry, reservations are only allowed between 6 in the morning and 10 in the evening. Please try a different time.");
+            processingRef.current = false;
+            resetTranscript();
+            return;
+          }
+
           try {
             await API.post("/reservations/", {
               room:       matched.id,
@@ -166,7 +192,64 @@ export default function useVoiceCommands(navigate) {
           return;
         }
       }
+      // ── SEARCH ROOMS ──────────────────────────────────────────────────────
+      if (data.intent === "search_rooms") {
+        const allRooms = await getRoomListWithDetails();
 
+        let filtered = allRooms;
+
+        if (data.room) {
+          filtered = filtered.filter((r) =>
+            r.name.toLowerCase().includes(data.room.toLowerCase())
+          );
+        }
+
+        if (data.capacity) {
+          filtered = filtered.filter((r) => r.capacity >= data.capacity);
+        }
+
+        if (data.location) {
+          filtered = filtered.filter((r) =>
+            r.location.toLowerCase().includes(data.location.toLowerCase())
+          );
+        }
+
+        if (filtered.length === 0) {
+          speak("Sorry, I couldn't find any rooms matching your criteria.");
+          processingRef.current = false;
+          resetTranscript();
+          return;
+        }
+
+  // Build spoken result
+  const roomNumbers = filtered.map((r) => r.name.replace("Room ", "")).join(", ");
+
+  const phrases = filtered.length === 1
+    ? [
+        `Here's what I found — Room ${roomNumbers}.`,
+        `I found one available room, that's Room ${roomNumbers}.`,
+        `Got one for you — Room ${roomNumbers}.`,
+      ]
+    : [
+        `Here's what I found — Rooms ${roomNumbers}.`,
+        `I found ${filtered.length} rooms that match — ${roomNumbers}.`,
+        `Got ${filtered.length} options for you — Rooms ${roomNumbers}.`,
+      ];
+
+const spokenResult = phrases[Math.floor(Math.random() * phrases.length)];
+        // Build URL params for Rooms.jsx to read
+        const params = new URLSearchParams();
+        if (data.room)      params.set("room", data.room);
+        if (data.capacity)  params.set("capacity", data.capacity);
+        if (data.location)  params.set("location", data.location);
+
+      // ✅ new — navigate first, wait for page to load, then speak
+      resetTranscript();
+      processingRef.current = false;
+      navigate(`/rooms?${params.toString()}`);
+      setTimeout(() => speak(spokenResult), 600); // 600ms lets the page render and filter first
+        return;
+      }
       // ── UNKNOWN ───────────────────────────────────────────────────────────
       speak("I didn't understand that. Please try again.");
       processingRef.current = false;

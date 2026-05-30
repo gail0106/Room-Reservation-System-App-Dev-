@@ -1,23 +1,37 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import API from "../api/axios";
 
 export default function Rooms() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [rooms, setRooms]               = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState("");
 
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [message, setMessage] = useState("");
-  const [formError, setFormError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [startTime, setStartTime]       = useState("");
+  const [endTime, setEndTime]           = useState("");
+  const [purpose, setPurpose]           = useState("");
+  const [message, setMessage]           = useState("");
+  const [formError, setFormError]       = useState("");
+  const [submitting, setSubmitting]     = useState(false);
 
-  // Real-time availability state
+  // ── Search state — initialized from URL params (voice search) ────────────
+  const [searchName,     setSearchName]     = useState(searchParams.get("room")      ?? "");
+  const [searchCapacity, setSearchCapacity] = useState(searchParams.get("capacity")  ?? "");
+  const [searchLocation, setSearchLocation] = useState(searchParams.get("location")  ?? "");
+  const isVoiceSearch = searchParams.get("room") || searchParams.get("capacity") || searchParams.get("location");
+
+  // Sync search state when URL params change (e.g. from voice assistant)
+  useEffect(() => {
+    setSearchName(searchParams.get("room")      ?? "");
+    setSearchCapacity(searchParams.get("capacity")  ?? "");
+    setSearchLocation(searchParams.get("location")  ?? "");
+  }, [searchParams]);
+
+  // ── Real-time availability ────────────────────────────────────────────────
   const [availability, setAvailability] = useState(null);
   const debounceTimer = useRef(null);
 
@@ -47,96 +61,67 @@ export default function Rooms() {
     return () => clearInterval(interval);
   }, [fetchRooms]);
 
+  // ── Real-time availability check ──────────────────────────────────────────
   useEffect(() => {
-    if (!selectedRoom || !startTime || !endTime) {
-      setAvailability(null);
-      return;
-    }
-
+    if (!selectedRoom || !startTime || !endTime) { setAvailability(null); return; }
     const start = new Date(startTime);
-    const end = new Date(endTime);
-
-    if (end <= start) {
-      setAvailability(null);
-      return;
-    }
+    const end   = new Date(endTime);
+    if (end <= start) { setAvailability(null); return; }
 
     setAvailability("checking");
-
     clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(async () => {
       try {
         const toISO = (val) => {
-          const date = new Date(val);
+          const date   = new Date(val);
           const offset = -date.getTimezoneOffset();
-          const sign = offset >= 0 ? "+" : "-";
-          const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+          const sign   = offset >= 0 ? "+" : "-";
+          const pad    = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
           return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset/60)}:${pad(offset%60)}`;
         };
-
-        const res = await API.get(`/reservations/`, {
-          params: {
-            room: selectedRoom.id,
-            start_time: toISO(startTime),
-            end_time: toISO(endTime),
-          }
+        const res      = await API.get("/reservations/", {
+          params: { room: selectedRoom.id, start_time: toISO(startTime), end_time: toISO(endTime) }
         });
-
         const existing = res.data?.data ?? res.data ?? [];
-
-        const start = new Date(startTime);
-        const end = new Date(endTime);
+        const s        = new Date(startTime);
+        const e        = new Date(endTime);
         const conflict = existing.some(r => {
           if (r.room !== selectedRoom.id && r.room_id !== selectedRoom.id) return false;
           if (["cancelled", "rejected"].includes(r.status)) return false;
           const rStart = new Date(r.start_time);
-          const rEnd = new Date(r.end_time);
-          return start < rEnd && end > rStart;
+          const rEnd   = new Date(r.end_time);
+          return s < rEnd && e > rStart;
         });
-
         setAvailability(conflict ? "unavailable" : "available");
       } catch {
         setAvailability(null);
       }
     }, 500);
-
     return () => clearTimeout(debounceTimer.current);
   }, [startTime, endTime, selectedRoom]);
 
   const handleRoomClick = (room) => {
-    if (selectedRoom?.id === room.id) {
-      setSelectedRoom(null);
-      setAvailability(null);
-      return;
-    }
+    if (selectedRoom?.id === room.id) { setSelectedRoom(null); setAvailability(null); return; }
     setSelectedRoom(room);
-    setStartTime("");
-    setEndTime("");
-    setPurpose("");
-    setMessage("");
-    setFormError("");
-    setAvailability(null);
+    setStartTime(""); setEndTime(""); setPurpose("");
+    setMessage(""); setFormError(""); setAvailability(null);
   };
 
-  // ── Time restriction: 6 AM – 10 PM only ──
-  const HOUR_MIN = 6;   // 06:00
-  const HOUR_MAX = 22;  // 22:00
+  const HOUR_MIN = 6;
+  const HOUR_MAX = 22;
 
   const isWithinAllowedHours = (datetimeStr) => {
     if (!datetimeStr) return true;
     const d = new Date(datetimeStr);
     const h = d.getHours();
-    const m = d.getMinutes();
-    return (h > HOUR_MIN || (h === HOUR_MIN && m >= 0)) && (h < HOUR_MAX);
+    return (h >= HOUR_MIN) && (h < HOUR_MAX);
   };
 
-  // Build the min/max datetime-local string for a given date keeping allowed bounds
   const toLocalInputStr = (date) => {
     const pad = (n) => String(n).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
 
-  // Min = today at 06:00, Max = today at 22:00 (browser enforces per-day via step)
   const todayAt = (hour, minute = 0) => {
     const d = new Date();
     d.setHours(hour, minute, 0, 0);
@@ -145,64 +130,74 @@ export default function Rooms() {
 
   const handleReserve = async (e) => {
     e.preventDefault();
-    setMessage("");
-    setFormError("");
-
-    // Validate time restriction before hitting the API
-    if (!isWithinAllowedHours(startTime)) {
-      setFormError("Start time must be between 6:00 AM and 10:00 PM.");
-      return;
-    }
-    if (!isWithinAllowedHours(endTime)) {
-      setFormError("End time must be between 6:00 AM and 10:00 PM.");
-      return;
-    }
-
+    setMessage(""); setFormError("");
+    if (!isWithinAllowedHours(startTime)) { setFormError("Start time must be between 6:00 AM and 10:00 PM."); return; }
+    if (!isWithinAllowedHours(endTime))   { setFormError("End time must be between 6:00 AM and 10:00 PM."); return; }
     setSubmitting(true);
     try {
       const toISO = (val) => {
-        const date = new Date(val);
+        const date   = new Date(val);
         const offset = -date.getTimezoneOffset();
-        const sign = offset >= 0 ? "+" : "-";
-        const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
+        const sign   = offset >= 0 ? "+" : "-";
+        const pad    = (n) => String(Math.floor(Math.abs(n))).padStart(2, "0");
         return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00${sign}${pad(offset/60)}:${pad(offset%60)}`;
       };
-
       await API.post("/reservations/", {
-        room: selectedRoom.id,
+        room:       selectedRoom.id,
         start_time: toISO(startTime),
-        end_time: toISO(endTime),
-        purpose: purpose.trim(),
+        end_time:   toISO(endTime),
+        purpose:    purpose.trim(),
       });
       setMessage("Reservation submitted! Waiting for approval.");
-      setStartTime("");
-      setEndTime("");
-      setPurpose("");
-      setAvailability(null);
+      setStartTime(""); setEndTime(""); setPurpose(""); setAvailability(null);
       fetchRooms();
     } catch (err) {
-      setFormError(
-        err.response?.data?.error ??
-          err.response?.data?.detail ??
-          "Something went wrong."
-      );
+      setFormError(err.response?.data?.error ?? err.response?.data?.detail ?? "Something went wrong.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const availabilityBadge = {
-    checking:    { bg: "#F0EFFF", color: "#5A52A8", border: "#C0BDEF", icon: "ti-loader-2", label: "Checking..." },
-    available:   { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", icon: "ti-circle-check", label: "Available for this slot" },
-    unavailable: { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", icon: "ti-circle-x",    label: "Not available for this slot" },
+  const clearSearch = () => {
+    setSearchName(""); setSearchCapacity(""); setSearchLocation("");
+    setSearchParams({});
   };
 
-  const groupedRooms = rooms.reduce((acc, room) => {
+  // ── Filter rooms based on search state ───────────────────────────────────
+  const filteredRooms = rooms.filter((r) => {
+    const matchName     = searchName
+      ? r.name.toLowerCase().includes(searchName.toLowerCase())
+      : true;
+    const matchCapacity = searchCapacity
+      ? r.capacity >= parseInt(searchCapacity, 10)
+      : true;
+    const matchLocation = searchLocation
+      ? r.location.toLowerCase().includes(searchLocation.toLowerCase())
+      : true;
+    return matchName && matchCapacity && matchLocation;
+  });
+
+  const groupedRooms = filteredRooms.reduce((acc, room) => {
     const floor = room.location || "Other";
     if (!acc[floor]) acc[floor] = [];
     acc[floor].push(room);
     return acc;
   }, {});
+
+  const availabilityBadge = {
+    checking:    { bg: "#F0EFFF", color: "#5A52A8", border: "#C0BDEF", icon: "ti-loader-2",    label: "Checking..." },
+    available:   { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", icon: "ti-circle-check", label: "Available for this slot" },
+    unavailable: { bg: "#FCEBEB", color: "#A32D2D", border: "#F7C1C1", icon: "ti-circle-x",    label: "Not available for this slot" },
+  };
+
+  const inputStyle = {
+    width: "100%", padding: "7px 10px 7px 32px", fontSize: 13,
+    border: "0.5px solid #D9C9A0", borderRadius: 8, outline: "none",
+    boxSizing: "border-box", background: "#FFFFFF", color: "#3A2000",
+    fontFamily: "'Poppins', sans-serif",
+  };
+
+  const hasSearch = searchName || searchCapacity || searchLocation;
 
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
@@ -213,10 +208,9 @@ export default function Rooms() {
         .spin { animation: spin 0.8s linear infinite; display: inline-block; }
       `}</style>
 
-      {/* Header */}
+      {/* ── Header ── */}
       <header style={{
-        background: "#8B0000",
-        borderBottom: "3px solid #C9991A",
+        background: "#8B0000", borderBottom: "3px solid #C9991A",
         padding: "0.85rem 1.5rem",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
@@ -249,9 +243,10 @@ export default function Rooms() {
         </button>
       </header>
 
-      {/* Page body */}
+      {/* ── Page body ── */}
       <div style={{ padding: "1.5rem", maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ marginBottom: "1.25rem" }}>
+
+        <div style={{ marginBottom: "1rem" }}>
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>
             Available Rooms
           </h1>
@@ -260,7 +255,108 @@ export default function Rooms() {
           </p>
         </div>
 
-        {/* Loading skeletons */}
+        {/* ── Search bar ── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: 8, marginBottom: 10,
+        }}>
+          {/* Room name */}
+          <div style={{ position: "relative" }}>
+            <i className="ti ti-search" style={{
+              position: "absolute", left: 10, top: "50%",
+              transform: "translateY(-50%)", fontSize: 14, color: "#B0A080",
+            }} />
+            <input
+              type="text"
+              placeholder="Search room name..."
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              style={inputStyle}
+              onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
+              onBlur={e  => e.currentTarget.style.borderColor = "#D9C9A0"}
+            />
+          </div>
+
+          {/* Min capacity */}
+          <div style={{ position: "relative" }}>
+            <i className="ti ti-users" style={{
+              position: "absolute", left: 10, top: "50%",
+              transform: "translateY(-50%)", fontSize: 14, color: "#B0A080",
+            }} />
+            <input
+              type="number"
+              placeholder="Min capacity..."
+              value={searchCapacity}
+              onChange={(e) => setSearchCapacity(e.target.value)}
+              style={inputStyle}
+              onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
+              onBlur={e  => e.currentTarget.style.borderColor = "#D9C9A0"}
+            />
+          </div>
+
+          {/* Floor / location */}
+          <div style={{ position: "relative" }}>
+            <i className="ti ti-building" style={{
+              position: "absolute", left: 10, top: "50%",
+              transform: "translateY(-50%)", fontSize: 14, color: "#B0A080",
+            }} />
+            <input
+              type="text"
+              placeholder="Floor... e.g. 2nd Floor"
+              value={searchLocation}
+              onChange={(e) => setSearchLocation(e.target.value)}
+              style={inputStyle}
+              onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
+              onBlur={e  => e.currentTarget.style.borderColor = "#D9C9A0"}
+            />
+          </div>
+        </div>
+
+        {/* ── Active filter row ── */}
+        {hasSearch && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            marginBottom: 12,
+          }}>
+            {/* Voice badge */}
+            {isVoiceSearch && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "#FDF0CC", border: "0.5px solid #D9C070",
+                borderRadius: 8, padding: "5px 10px",
+                fontSize: 12, color: "#7A6030",
+              }}>
+                <i className="ti ti-microphone" style={{ fontSize: 13, color: "#C9991A" }} />
+                Voice search active
+              </div>
+            )}
+
+            {/* Result count */}
+            <span style={{ fontSize: 12, color: "#B0A080" }}>
+              {filteredRooms.length} room{filteredRooms.length !== 1 ? "s" : ""} found
+            </span>
+
+            {/* Clear */}
+            <button
+              onClick={clearSearch}
+              style={{
+                marginLeft: "auto",
+                display: "flex", alignItems: "center", gap: 4,
+                background: "#F5E8E8", border: "0.5px solid #D9A0A0",
+                borderRadius: 8, padding: "5px 12px",
+                fontSize: 12, color: "#8B0000", cursor: "pointer",
+                fontFamily: "'Poppins', sans-serif", fontWeight: 500,
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#EDD0D0"}
+              onMouseLeave={e => e.currentTarget.style.background = "#F5E8E8"}
+            >
+              <i className="ti ti-x" style={{ fontSize: 12 }} /> Clear filters
+            </button>
+          </div>
+        )}
+
+        {/* ── Loading skeletons ── */}
         {loading && (
           <div style={{ display: "grid", gap: 10 }}>
             {[1, 2, 3].map(i => (
@@ -272,7 +368,7 @@ export default function Rooms() {
           </div>
         )}
 
-        {/* Fetch error */}
+        {/* ── Fetch error ── */}
         {error && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8,
@@ -284,11 +380,10 @@ export default function Rooms() {
           </div>
         )}
 
-        {/* Room list grouped by floor */}
+        {/* ── Room list grouped by floor ── */}
         {!loading && Object.entries(groupedRooms).map(([floor, floorRooms]) => (
           <div key={floor} style={{ marginBottom: "1.5rem" }}>
 
-            {/* Floor section header */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: 6, background: "#8B0000",
@@ -308,7 +403,6 @@ export default function Rooms() {
               </span>
             </div>
 
-            {/* Rooms in this floor */}
             <div style={{ display: "grid", gap: 10 }}>
               {floorRooms.map(room => {
                 const isSelected = selectedRoom?.id === room.id;
@@ -324,7 +418,7 @@ export default function Rooms() {
                     boxShadow: isSelected ? "0 2px 8px rgba(139,0,0,0.10)" : "none",
                   }}>
 
-                    {/* Room row (clickable) */}
+                    {/* Room row */}
                     <div
                       onClick={() => handleRoomClick(room)}
                       style={{
@@ -332,12 +426,8 @@ export default function Rooms() {
                         justifyContent: "space-between",
                         padding: "1rem 1.25rem", cursor: "pointer",
                       }}
-                      onMouseEnter={e => {
-                        if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#C9991A";
-                      }}
-                      onMouseLeave={e => {
-                        if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#D9C9A0";
-                      }}
+                      onMouseEnter={e => { if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#C9991A"; }}
+                      onMouseLeave={e => { if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#D9C9A0"; }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{
@@ -347,8 +437,7 @@ export default function Rooms() {
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>
                           <i className="ti ti-door" style={{
-                            fontSize: 20,
-                            color: isOccupied ? "#8B0000" : "#1E7D4B",
+                            fontSize: 20, color: isOccupied ? "#8B0000" : "#1E7D4B",
                           }} />
                         </div>
                         <div>
@@ -358,17 +447,34 @@ export default function Rooms() {
                           <p style={{ fontSize: 12, color: "#7A6030", margin: 0 }}>
                             <i className="ti ti-users" style={{ fontSize: 11, marginRight: 4 }} />
                             Capacity: {room.capacity}
+                            {room.location && (
+                              <> &nbsp;·&nbsp;
+                                <i className="ti ti-map-pin" style={{ fontSize: 11, marginRight: 4 }} />
+                                {room.location}
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>
 
-                      <i
-                        className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
-                        style={{ fontSize: 16, color: "#C9991A" }}
-                      />
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{
+                          fontSize: 11, fontWeight: 500, padding: "3px 8px",
+                          borderRadius: 20,
+                          background: isOccupied ? "#F5E8E8" : "#EDFAF3",
+                          color: isOccupied ? "#8B0000" : "#1E7D4B",
+                          border: `0.5px solid ${isOccupied ? "#D9A0A0" : "#A8DFC1"}`,
+                        }}>
+                          {isOccupied ? "Occupied" : "Available"}
+                        </span>
+                        <i
+                          className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
+                          style={{ fontSize: 16, color: "#C9991A" }}
+                        />
+                      </div>
                     </div>
 
-                    {/* Inline reservation form */}
+                    {/* Reservation form */}
                     {isSelected && (
                       <div style={{
                         borderTop: "0.5px solid #EDE4D4",
@@ -379,7 +485,6 @@ export default function Rooms() {
                           Reserve — {room.name}
                         </p>
 
-                        {/* Success message */}
                         {message && (
                           <div style={{
                             display: "flex", alignItems: "center", gap: 8,
@@ -391,7 +496,6 @@ export default function Rooms() {
                           </div>
                         )}
 
-                        {/* Form error */}
                         {formError && (
                           <div style={{
                             display: "flex", alignItems: "center", gap: 8,
@@ -404,12 +508,10 @@ export default function Rooms() {
                         )}
 
                         <form onSubmit={handleReserve}>
-                          {/* Date/time row */}
                           <div style={{
                             display: "grid", gridTemplateColumns: "1fr 1fr",
                             gap: 10, marginBottom: 10,
                           }}>
-                            {/* Start Time */}
                             <div>
                               <label style={{
                                 display: "block", fontSize: 12, fontWeight: 500,
@@ -432,11 +534,9 @@ export default function Rooms() {
                                   fontFamily: "'Poppins', sans-serif",
                                 }}
                                 onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
-                                onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}
+                                onBlur={e  => e.currentTarget.style.borderColor = "#D9C9A0"}
                               />
                             </div>
-
-                            {/* End Time */}
                             <div>
                               <label style={{
                                 display: "block", fontSize: 12, fontWeight: 500,
@@ -459,12 +559,11 @@ export default function Rooms() {
                                   fontFamily: "'Poppins', sans-serif",
                                 }}
                                 onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
-                                onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}
+                                onBlur={e  => e.currentTarget.style.borderColor = "#D9C9A0"}
                               />
                             </div>
                           </div>
 
-                          {/* Operating hours hint */}
                           <div style={{
                             display: "flex", alignItems: "center", gap: 6,
                             marginBottom: 10, marginTop: -2,
@@ -475,7 +574,6 @@ export default function Rooms() {
                             </span>
                           </div>
 
-                          {/* Purpose field — full width */}
                           <div style={{ marginBottom: 12 }}>
                             <label style={{
                               display: "block", fontSize: 12, fontWeight: 500,
@@ -493,7 +591,7 @@ export default function Rooms() {
                                 onChange={e => setPurpose(e.target.value)}
                                 required
                                 rows={2}
-                                placeholder="e.g. Group study session, Faculty meeting, Club activity..."
+                                placeholder="e.g. Group study session, Faculty meeting..."
                                 style={{
                                   width: "100%", padding: "7px 10px 7px 32px", fontSize: 13,
                                   border: "0.5px solid #D9C9A0", borderRadius: 8,
@@ -503,21 +601,18 @@ export default function Rooms() {
                                   resize: "vertical", lineHeight: 1.5,
                                 }}
                                 onFocus={e => e.currentTarget.style.borderColor = "#C9991A"}
-                                onBlur={e => e.currentTarget.style.borderColor = "#D9C9A0"}
+                                onBlur={e  => e.currentTarget.style.borderColor = "#D9C9A0"}
                               />
                             </div>
                           </div>
 
-                          {/* Real-time availability badge */}
                           {availability && (() => {
                             const badge = availabilityBadge[availability];
                             return (
                               <div style={{
                                 display: "flex", alignItems: "center", gap: 8,
-                                background: badge.bg,
-                                border: `0.5px solid ${badge.border}`,
-                                borderRadius: 8, padding: "8px 12px",
-                                marginBottom: 12,
+                                background: badge.bg, border: `0.5px solid ${badge.border}`,
+                                borderRadius: 8, padding: "8px 12px", marginBottom: 12,
                                 transition: "all 0.2s ease",
                               }}>
                                 <i
@@ -547,17 +642,10 @@ export default function Rooms() {
                                 fontSize: 13, fontWeight: 600,
                                 cursor: (submitting || availability === "unavailable") ? "not-allowed" : "pointer",
                                 display: "flex", alignItems: "center", gap: 6,
-                                fontFamily: "'Poppins', sans-serif",
-                                transition: "background 0.15s",
+                                fontFamily: "'Poppins', sans-serif", transition: "background 0.15s",
                               }}
-                              onMouseEnter={e => {
-                                if (!submitting && availability !== "unavailable")
-                                  e.currentTarget.style.background = "#C9991A";
-                              }}
-                              onMouseLeave={e => {
-                                if (!submitting && availability !== "unavailable")
-                                  e.currentTarget.style.background = "#8B0000";
-                              }}
+                              onMouseEnter={e => { if (!submitting && availability !== "unavailable") e.currentTarget.style.background = "#C9991A"; }}
+                              onMouseLeave={e => { if (!submitting && availability !== "unavailable") e.currentTarget.style.background = "#8B0000"; }}
                             >
                               <i className="ti ti-calendar-plus" />
                               {submitting ? "Submitting..." : "Reserve Room"}
@@ -588,14 +676,19 @@ export default function Rooms() {
           </div>
         ))}
 
-        {/* Empty state */}
-        {!loading && rooms.length === 0 && !error && (
+        {/* ── Empty state ── */}
+        {!loading && filteredRooms.length === 0 && !error && (
           <div style={{
             textAlign: "center", padding: "3rem 1rem",
             color: "#B0A080", fontSize: 13,
           }}>
-            <i className="ti ti-building-off" style={{ fontSize: 32, display: "block", marginBottom: 8, color: "#C9991A" }} />
-            No rooms available right now.
+            <i className="ti ti-building-off" style={{
+              fontSize: 32, display: "block", marginBottom: 8, color: "#C9991A",
+            }} />
+            {hasSearch
+              ? "No rooms match your search criteria."
+              : "No rooms available right now."
+            }
           </div>
         )}
       </div>
