@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import { subscribeUserToPush } from '../utils/pushNotifications';
 
 
 const iconColors = {
@@ -26,6 +27,30 @@ const statusLabel = {
   completed: "Completed",
   cancelled: "Cancelled",
 };
+
+// export default function NotificationBell() {
+//   const token = localStorage.getItem('access_token'); // adjust to how you store your JWT
+
+//   const handleSubscribe = async () => {
+//     try {
+//       const permission = await Notification.requestPermission();
+//       if (permission === 'granted') {
+//         await subscribeUserToPush(token);
+//         alert('Push notifications enabled!');
+//       } else {
+//         alert('Permission denied for notifications.');
+//       }
+//     } catch (err) {
+//       console.error('Subscription error:', err);
+//     }
+//   };
+
+//   return (
+//     <button onClick={handleSubscribe}>
+//       🔔 Enable Notifications
+//     </button>
+//   );
+// }
 
 export default function Dashboard() {
   const navigate = useNavigate();

@@ -30,10 +30,17 @@ SECRET_KEY = 'django-insecure-@n@fxidx1bnus+8cjylks&xf)^o@u*nm5-$3xzjhpdyi%5_@55
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "room-reservation-system-app-dev-production.up.railway.app",
+]
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4173",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://room-reservation-system-app-dev.vercel.app",
 ]
 
 
@@ -54,10 +61,12 @@ INSTALLED_APPS = [
     'django_filters',
     'apps.notifications.apps.NotificationsConfig',
     'corsheaders',
+    'webpush',
 ]
 
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -65,7 +74,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -114,10 +123,6 @@ REST_FRAMEWORK = {
     ]
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
-
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
@@ -135,6 +140,12 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+WEBPUSH_SETTINGS = {
+    'VAPID_PUBLIC_KEY': 'BEHvoB_t2mFH2cAT6BemWiBcjf5foR0WBTnz6JpUcbT5zTkQjXd_HVJxCiEKin4gltktlJIZ_zLkvTVS58-p9Cg',
+    'VAPID_PRIVATE_KEY': 'zxPy0ZzTOKNidtF0gbt3edMjVC0NscxxfQxoJVikRAA',
+    'VAPID_ADMIN_EMAIL': 'admin@reservationsystem.com',
+}
 
 
 # Internationalization
