@@ -46,6 +46,8 @@ INTENTS:
 
 4. unknown → { "intent": "unknown" }
 
+5. search_rooms → { "intent": "search_rooms", "room": "<room name or null>", "capacity": <number or null>, "location": "<Nth Floor or null>" }
+
 RULES:
 Rooms: ${roomList} (numbers: ${roomNumbers}). Spoken digits like "one oh one" = 101. Invalid room = null.
 Dates: resolve relative dates (tomorrow, next Monday, this Friday) using today. Any sentence order.
@@ -55,8 +57,12 @@ Language: English and Filipino. "bukas"=tomorrow, "ngayon"=today, "mula"=from, "
 Reserve trigger phrases: "book/reserve a room", "can I book/reserve", "make a reservation", "mag-reserve ng room" → return nulls version.
 Converse: greetings, thanks, bye, compliments, "what can you do", "help", "salamat", "kamusta". Short warm replies in same language as user, never say you're an AI.
 Navigate "manage_reservations": "manage reservations", "admin reservations". "manage_rooms": "manage rooms", "admin rooms". "bookings": "my bookings", "my reservations".
-Validation: only return full reserve_room if room + date + start_time + end_time all present. Otherwise all nulls.`;
+Validation: only return full reserve_room if room + date + start_time + end_time all present. Otherwise all nulls.
+Search triggers: "find a room", "look for a room", "search for a room", "I want to look for", "I want to find", "maghanap ng room", "hanap ng room".
+Search rules: capacity = minimum needed (e.g. "for 40 people" → 40). Location normalize to "1st Floor", "2nd Floor" etc. Extract room name same as reserve rules. All fields optional — return null for any not mentioned.
+Hours: reservations only allowed 6:00 AM to 10:00 PM (06:00–22:00). If user requests a time outside this range, still extract the intent but set start_time/end_time to null and add "time_error": "Reservations are only allowed from 6 AM to 10 PM." to the response.`;
 }
+
 async function tryGenerate(client, system, transcript) {
   const { text } = await generateText({
     model: client("llama-3.3-70b-versatile"),
