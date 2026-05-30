@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { invalidateRoomCache } from "../lib/parseIntent"; // 👈 add this
 
+import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
+
 export default function AdminRooms() {
   const navigate = useNavigate();
 
@@ -173,14 +176,13 @@ export default function AdminRooms() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, background: "#C9991A",
-            borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <i className="ti ti-school" style={{ fontSize: 20, color: "#FFFFFF" }} />
-          </div>
+          <img
+            src={logo}
+            alt="RoomMate logo"
+            style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
+          />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>PUPSantaRosa</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>RoomMate</div>
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
@@ -335,12 +337,12 @@ export default function AdminRooms() {
                       width: 32, height: 32, borderRadius: 8,
                       background: "#FDF0CC", border: "0.5px solid #D9C070",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      cursor: "pointer", transition: "background 0.15s",
+                      cursor: "pointer", transition: "background 0.15s", fontSize: 16,
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = "#C9991A22"}
                     onMouseLeave={e => e.currentTarget.style.background = "#FDF0CC"}
                   >
-                    <i className="ti ti-pencil" style={{ fontSize: 15, color: "#C9991A" }} />
+                    ✏️
                   </button>
 
                   {/* Delete */}
@@ -349,14 +351,14 @@ export default function AdminRooms() {
                     title="Delete room"
                     style={{
                       width: 32, height: 32, borderRadius: 8,
-                      background: "#F5E8E8", border: "0.5px solid #D9A0A0",
+                      background: "#e8aaaa", border: "0.5px solid #D9A0A0",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      cursor: "pointer", transition: "background 0.15s",
+                      cursor: "pointer", transition: "background 0.15s", fontSize: 16,
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = "#8B000022"}
                     onMouseLeave={e => e.currentTarget.style.background = "#F5E8E8"}
                   >
-                    <i className="ti ti-trash" style={{ fontSize: 15, color: "#8B0000" }} />
+                    🗑️
                   </button>
                 </div>
               </div>
@@ -651,6 +653,7 @@ export default function AdminRooms() {
           </div>
         </div>
       )}
+      <VoiceAssistant />
     </div>
   );
 }

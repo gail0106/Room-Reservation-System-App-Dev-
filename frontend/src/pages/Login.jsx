@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api/axios";
+import logo from "../assets/RoomMate.png";
+import bgImage from "../assets/pupschool.png";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -14,7 +16,6 @@ export default function Login() {
 
   const successMessage = location.state?.message;
 
-  // Check if redirected here due to session expiry
   useEffect(() => {
     if (sessionStorage.getItem("sessionExpired") === "true") {
       setSessionExpired(true);
@@ -33,14 +34,11 @@ export default function Login() {
     setSessionExpired(false);
     try {
       const response = await API.post("auth/login/", { username, password });
-
       const user = response.data.data.user;
-
       localStorage.clear();
       localStorage.setItem("token", response.data.data.tokens.access);
       localStorage.setItem("role", user.role);
       localStorage.setItem("username", user.username);
-
       navigate("/dashboard");
     } catch (err) {
       setError("Invalid username or password.");
@@ -55,24 +53,52 @@ export default function Login() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
-
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
-      <div style={{ ...poppins, minHeight: "100vh", background: "#7A1C1C", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-        <div style={{ background: "#fff", border: "0.5px solid #C9A02A", borderRadius: 12, padding: "2rem 1.75rem", width: "100%", maxWidth: 360 }}>
+      <div style={{
+        ...poppins,
+        minHeight: "100vh",
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        position: "relative",
+      }}>
+
+        {/* Dark overlay */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "rgba(90, 0, 0, 0.55)",
+        }} />
+
+        {/* Card */}
+        <div style={{
+          position: "relative",
+          background: "#fff", border: "0.5px solid #C9A02A",
+          borderRadius: 12, padding: "2rem 1.75rem",
+          width: "100%", maxWidth: 360,
+        }}>
 
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "1.75rem" }}>
-            <div style={{ width: 38, height: 38, background: "#7A1C1C", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-school" style={{ fontSize: 20, color: "#F0C040" }} />
-            </div>
+            <img
+              src={logo}
+              alt="RoomMate logo"
+              style={{ width: 42, height: 42, objectFit: "contain", flexShrink: 0 }}
+            />
             <div>
-              <p style={{ ...poppins, fontSize: 18, fontWeight: 600, color: "#7A1C1C", margin: "0 0 2px" }}>PUPSantaRosa</p>
-              <p style={{ ...poppins, fontSize: 12, color: "#888", margin: 0 }}>Room Reservation System</p>
+              <p style={{ ...poppins, fontSize: 18, fontWeight: 600, color: "#7A1C1C", margin: "0 0 2px" }}>
+                Room<span style={{ color: "#F0C040" }}>Mate</span>
+              </p>
+              <p style={{ ...poppins, fontSize: 12, color: "#888", margin: 0, fontWeight: 600 }}>
+                Room Reservation System
+              </p>
             </div>
           </div>
 
@@ -80,11 +106,9 @@ export default function Login() {
           {sessionExpired && (
             <div style={{
               display: "flex", alignItems: "flex-start", gap: 10,
-              background: "#FFF8EC",
-              border: "0.5px solid #E0B030",
-              borderLeft: "3px solid #C9991A",
-              borderRadius: 8, padding: "10px 12px",
-              marginBottom: "1rem",
+              background: "#FFF8EC", border: "0.5px solid #E0B030",
+              borderLeft: "3px solid #C9991A", borderRadius: 8,
+              padding: "10px 12px", marginBottom: "1rem",
               animation: "slideDown 0.2s ease",
             }}>
               <i className="ti ti-clock-exclamation" style={{ fontSize: 16, color: "#C9991A", flexShrink: 0, marginTop: 1 }} />
@@ -99,7 +123,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* Success message after registration */}
+          {/* Success message */}
           {successMessage && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#EDFAF3", border: "0.5px solid #A8DFC1", borderRadius: 8, padding: "8px 12px", marginBottom: "1rem" }}>
               <i className="ti ti-circle-check" style={{ fontSize: 16, color: "#1E7D4B", flexShrink: 0 }} />
@@ -118,7 +142,9 @@ export default function Login() {
           <form onSubmit={handleLogin}>
             {/* Username */}
             <div style={{ marginBottom: "1rem" }}>
-              <label style={{ ...poppins, display: "block", fontSize: 12, fontWeight: 500, color: "#666", marginBottom: 6 }}>Username</label>
+              <label style={{ ...poppins, display: "block", fontSize: 12, fontWeight: 500, color: "#666", marginBottom: 6 }}>
+                Username
+              </label>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <i className="ti ti-user" style={{ position: "absolute", left: 10, fontSize: 16, color: "#aaa", pointerEvents: "none" }} />
                 <input
@@ -133,7 +159,9 @@ export default function Login() {
 
             {/* Password */}
             <div style={{ marginBottom: "1.25rem" }}>
-              <label style={{ ...poppins, display: "block", fontSize: 12, fontWeight: 500, color: "#666", marginBottom: 6 }}>Password</label>
+              <label style={{ ...poppins, display: "block", fontSize: 12, fontWeight: 500, color: "#666", marginBottom: 6 }}>
+                Password
+              </label>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <i className="ti ti-lock" style={{ position: "absolute", left: 10, fontSize: 16, color: "#aaa", pointerEvents: "none" }} />
                 <input
@@ -141,6 +169,7 @@ export default function Login() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                   style={{ ...poppins, width: "100%", padding: "8px 34px 8px 34px", fontSize: 13, border: "0.5px solid #ccc", borderRadius: 8, outline: "none", boxSizing: "border-box" }}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -160,7 +189,6 @@ export default function Login() {
 
           <hr style={{ border: "none", borderTop: "0.5px solid #e0e0da", margin: "1.25rem 0" }} />
 
-          {/* Registration Link */}
           <p style={{ ...poppins, fontSize: 12, color: "#666", textAlign: "center", margin: "0 0 0.75rem" }}>
             Don't have an account?{" "}
             <a href="/register"
@@ -176,6 +204,7 @@ export default function Login() {
           <p style={{ ...poppins, fontSize: 11, color: "#aaa", textAlign: "center", margin: 0 }}>
             Contact your administrator if you need access.
           </p>
+
         </div>
       </div>
     </>

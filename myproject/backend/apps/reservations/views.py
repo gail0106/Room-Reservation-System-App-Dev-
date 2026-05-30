@@ -12,6 +12,7 @@ from .serializers import ReservationSerializer, CalendarReservationSerializer
 from apps.accounts.permissions import IsAdmin
 from apps.notifications.services import create_notification
 
+from django.utils import timezone
 
 # =========================
 # LIST + CREATE RESERVATION
@@ -21,7 +22,14 @@ class ReservationListCreateView(generics.ListCreateAPIView):
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
 
+    def auto_reject_expired(self):
+        """Auto-reject pending reservations whose start_time has passed."""
+        now = timezone.now()
+        expired = Reservation.objects.filter(status="pending", start_time__lt=now)
+        expired.update(status="rejected")
+
     def get_queryset(self):
+        self.auto_reject_expired()
         # Auto-complete expired approved reservations on every fetch
         from apps.notifications.models import Notification as NotifModel
 
