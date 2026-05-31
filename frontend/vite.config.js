@@ -24,7 +24,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
-      includeAssets: ['icons/favicon.svg', 'icons/icon-512.png'],
+      includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180x180.png'],
       manifest: {
         name: 'My Reservation System',
         short_name: 'Reservations',
