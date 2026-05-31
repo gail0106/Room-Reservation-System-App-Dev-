@@ -20,7 +20,7 @@ export default function OfflineBanner() {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-white text-center text-sm py-2 px-4 shadow-md">
-      ⚠️ You are offline. Showing cached data — some features may be unavailable.
+      You are offline. Showing cached data - some features may be unavailable.
     </div>
   );
 }
