@@ -524,8 +524,7 @@ export default function Rooms() {
                                 value={startTime}
                                 onChange={e => setStartTime(e.target.value)}
                                 required
-                                min={todayAt(HOUR_MIN)}
-                                max={todayAt(HOUR_MAX - 1, 59)}
+                                min={todayAt(0, 0)}
                                 style={{
                                   width: "100%", padding: "7px 10px", fontSize: 13,
                                   border: "0.5px solid #D9C9A0", borderRadius: 8,
@@ -549,8 +548,7 @@ export default function Rooms() {
                                 value={endTime}
                                 onChange={e => setEndTime(e.target.value)}
                                 required
-                                min={startTime || todayAt(HOUR_MIN)}
-                                max={todayAt(HOUR_MAX)}
+                                min={startTime || todayAt(0, 0)}
                                 style={{
                                   width: "100%", padding: "7px 10px", fontSize: 13,
                                   border: "0.5px solid #D9C9A0", borderRadius: 8,
