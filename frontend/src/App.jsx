@@ -17,6 +17,7 @@ function App() {
 
   return (
     <>
+    <OfflineBanner /> {/* ← ADD THIS */}
     <Routes>
       {/* Public */}
       <Route path="/" element={<Login />} />
