@@ -15,13 +15,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-@n@fxidx1bnus+8cjylks&xf)^o@u*nm5-$3xzjhpdyi%5_@55')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# ALLOWED_HOSTS = [
-#     "localhost",
-#     "127.0.0.1",
-#     "room-reservation-system-app-dev-production.up.railway.app",
-# ]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "room-reservation-system-app-dev-production.up.railway.app",
+    ".onrender.com",
+]
 
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4173",
