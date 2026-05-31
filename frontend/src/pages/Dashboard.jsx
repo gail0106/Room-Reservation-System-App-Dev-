@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { subscribeUserToPush } from '../utils/pushNotifications';
 
+import VoiceAssistant from "../components/VoiceAssistant";
+import logo from "../assets/RoomMate.png";
 
 const iconColors = {
   blue:   { bg: "#E8EEF7", color: "#1A5CA8" },
@@ -117,13 +119,13 @@ export default function Dashboard() {
   }
 
   const navItems = [
-    { label: "View Rooms", desc: "Browse available spaces", icon: "ti-building", color: "blue", path: "/rooms" },
-    { label: "My Bookings", desc: "Manage your bookings", icon: "ti-clipboard-list", color: "teal", path: "/reservations" },
-    { label: "Calendar", desc: "Monthly overview", icon: "ti-calendar", color: "amber", path: "/calendar" },
-    { label: "Notifications", desc: "Updates & alerts", icon: "ti-bell", color: "purple", path: "/notifications" },
+    { label: "View Rooms",   desc: "Browse available spaces",      emoji: "🏫", color: "blue",   path: "/rooms" },
+    { label: "My Bookings",  desc: "Manage your bookings",          emoji: "📋", color: "teal",   path: "/reservations" },
+    { label: "Calendar",     desc: "Monthly overview",              emoji: "📅", color: "amber",  path: "/calendar" },
+    { label: "Notifications",desc: "Updates & alerts",              emoji: "🔔", color: "purple", path: "/notifications" },
     ...(isAdmin ? [
-      { label: "Manage Reservations", desc: "Approve or reject requests", icon: "ti-shield-check", color: "red", path: "/admin/reservations" },
-      { label: "Manage Rooms", desc: "Add, edit or remove rooms", icon: "ti-building-plus", color: "green", path: "/admin/rooms" },
+      { label: "Manage Reservations", desc: "Approve or reject requests", emoji: "🛡️", color: "red",   path: "/admin/reservations" },
+      { label: "Manage Rooms",        desc: "Add, edit or remove rooms",  emoji: "🏢", color: "green", path: "/admin/rooms" },
     ] : []),
   ];
 
@@ -185,7 +187,6 @@ export default function Dashboard() {
               animation: "slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
             }}
           >
-            {/* Icon */}
             <div style={{
               width: 52, height: 52,
               background: "#FBF0F0",
@@ -193,77 +194,47 @@ export default function Dashboard() {
               borderRadius: 12,
               display: "flex", alignItems: "center", justifyContent: "center",
               marginBottom: "1.1rem",
+              fontSize: 28,
             }}>
-              <i className="ti ti-logout" style={{ fontSize: 26, color: "#8B0000" }} />
+              🚪
             </div>
 
-            {/* Text */}
-            <h2 style={{
-              fontSize: 16, fontWeight: 700,
-              color: "#5A0000", margin: "0 0 6px",
-            }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "#5A0000", margin: "0 0 6px" }}>
               Sign out
             </h2>
-            <p style={{
-              fontSize: 13, color: "#7A6030",
-              margin: "0 0 1.5rem", lineHeight: 1.55,
-            }}>
+            <p style={{ fontSize: 13, color: "#7A6030", margin: "0 0 1.5rem", lineHeight: 1.55 }}>
               Are you sure you want to sign out of your account? Any unsaved changes will be lost.
             </p>
 
-            {/* Divider */}
             <div style={{ height: "0.5px", background: "#EDE4D4", marginBottom: "1.1rem" }} />
 
-            {/* Actions */}
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={() => setShowLogoutModal(false)}
                 style={{
-                  flex: 1,
-                  padding: "9px 0",
-                  borderRadius: 8,
-                  border: "0.5px solid #D9C9A0",
-                  background: "#F7F3EE",
-                  color: "#5A3A00",
-                  fontSize: 13, fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "'Poppins', sans-serif",
+                  flex: 1, padding: "9px 0", borderRadius: 8,
+                  border: "0.5px solid #D9C9A0", background: "#F7F3EE",
+                  color: "#5A3A00", fontSize: 13, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "'Poppins', sans-serif",
                   transition: "background 0.15s, border-color 0.15s",
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "#EDE4D4";
-                  e.currentTarget.style.borderColor = "#C9991A";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "#F7F3EE";
-                  e.currentTarget.style.borderColor = "#D9C9A0";
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#EDE4D4"; e.currentTarget.style.borderColor = "#C9991A"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#F7F3EE"; e.currentTarget.style.borderColor = "#D9C9A0"; }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogoutConfirm}
                 style={{
-                  flex: 1,
-                  padding: "9px 0",
-                  borderRadius: 8,
-                  border: "none",
-                  background: "#8B0000",
-                  color: "#FFFFFF",
-                  fontSize: 13, fontWeight: 600,
-                  cursor: "pointer",
+                  flex: 1, padding: "9px 0", borderRadius: 8, border: "none",
+                  background: "#8B0000", color: "#FFFFFF",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
                   fontFamily: "'Poppins', sans-serif",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                   transition: "background 0.15s, box-shadow 0.15s",
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "#6A0000";
-                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(139,0,0,0.30)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "#8B0000";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#6A0000"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(139,0,0,0.30)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#8B0000"; e.currentTarget.style.boxShadow = "none"; }}
               >
                 <i className="ti ti-logout" style={{ fontSize: 15 }} />
                 Sign out
@@ -275,24 +246,18 @@ export default function Dashboard() {
 
       {/* Header */}
       <header style={{
-        background: "#8B0000",
-        borderBottom: "3px solid #C9991A",
+        background: "#8B0000", borderBottom: "3px solid #C9991A",
         padding: "0.85rem 1.5rem",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 36, height: 36,
-            background: "#C9991A",
-            borderRadius: 8,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <i className="ti ti-school" style={{ fontSize: 20, color: "#FFFFFF" }} />
-          </div>
+          <img
+          src={logo}
+          alt="RoomMate logo"
+          style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
+        />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>PUPSantaRosa</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>RoomMate</div>
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
@@ -303,25 +268,21 @@ export default function Dashboard() {
               width: 36, height: 36,
               background: "rgba(255,255,255,0.12)",
               border: "0.5px solid rgba(201,153,26,0.5)",
-              borderRadius: 8,
-              display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer",
             }}
           >
             <i className="ti ti-bell" style={{ fontSize: 18, color: "#F5D98A" }} />
           </button>
-
           <div
             title={`${username} (${role})`}
             style={{
-              width: 36, height: 36,
-              borderRadius: "50%",
+              width: 36, height: 36, borderRadius: "50%",
               background: isAdmin ? "#C9991A" : "#FFFFFF",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 13, fontWeight: 700,
               color: isAdmin ? "#FFFFFF" : "#8B0000",
-              cursor: "default",
-              border: "2px solid #C9991A",
+              cursor: "default", border: "2px solid #C9991A",
             }}
           >
             {initials}
@@ -330,6 +291,7 @@ export default function Dashboard() {
       </header>
 
       <div style={{ padding: "1.5rem", maxWidth: 900, margin: "0 auto" }}>
+
         {/* Welcome */}
         <div style={{
           marginBottom: "1.5rem",
@@ -351,14 +313,12 @@ export default function Dashboard() {
               fontSize: 11, fontWeight: 600,
               background: "#8B0000", color: "#FFFFFF",
               borderRadius: 20, padding: "4px 12px",
-              border: "0.5px solid #C9991A",
-              letterSpacing: "0.04em",
+              border: "0.5px solid #C9991A", letterSpacing: "0.04em",
             }}>
               Admin
             </span>
           )}
         </div>
-
 
         {/* Stats */}
         <div style={{
@@ -369,15 +329,14 @@ export default function Dashboard() {
           {loadingStats
             ? Array(4).fill(0).map((_, i) => (
                 <div key={i} style={{
-                  background: "#EDE4D4",
-                  borderRadius: 8, padding: "0.85rem 1rem",
-                  height: 60, animation: "pulse 1.5s infinite",
+                  background: "#EDE4D4", borderRadius: 8,
+                  padding: "0.85rem 1rem", height: 60,
+                  animation: "pulse 1.5s infinite",
                 }} />
               ))
             : statCards.map(({ label, value }) => (
                 <div key={label} style={{
-                  background: "#FFFFFF",
-                  border: "0.5px solid #D9C9A0",
+                  background: "#FFFFFF", border: "0.5px solid #D9C9A0",
                   borderRadius: 8, padding: "0.85rem 1rem",
                   borderLeft: "3px solid #C9991A",
                 }}>
@@ -407,17 +366,14 @@ export default function Dashboard() {
           gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
           gap: 12, marginBottom: "1.5rem",
         }}>
-          {navItems.map(({ label, desc, icon, color, path }) => (
+          {navItems.map(({ label, desc, emoji, color, path }) => (
             <div
               key={label}
               onClick={() => navigate(path)}
               style={{
-                background: "#FFFFFF",
-                border: "0.5px solid #D9C9A0",
-                borderRadius: 12,
-                padding: "1.25rem 1rem",
-                cursor: "pointer",
-                display: "flex", flexDirection: "column", gap: 10,
+                background: "#FFFFFF", border: "0.5px solid #D9C9A0",
+                borderRadius: 12, padding: "1.25rem 1rem",
+                cursor: "pointer", display: "flex", flexDirection: "column", gap: 10,
                 transition: "border-color 0.15s, box-shadow 0.15s",
               }}
               onMouseEnter={e => {
@@ -433,15 +389,12 @@ export default function Dashboard() {
                 width: 38, height: 38, borderRadius: 8,
                 background: iconColors[color].bg,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 20, color: iconColors[color].color,
+                fontSize: 22,
               }}>
-                <i className={`ti ${icon}`} />
+                {emoji}
               </div>
               <div>
-                <p style={{
-                  fontSize: 13, fontWeight: 600, margin: "0 0 2px",
-                  color: "#1A5CA8",
-                }}>
+                <p style={{ fontSize: 13, fontWeight: 600, margin: "0 0 2px", color: "#1A5CA8" }}>
                   {label}
                 </p>
                 <p style={{ fontSize: 11, color: "#7A6030", margin: 0 }}>{desc}</p>
@@ -459,16 +412,11 @@ export default function Dashboard() {
           Recent activity
         </p>
         <div style={{
-          background: "#FFFFFF",
-          border: "0.5px solid #D9C9A0",
-          borderRadius: 12, overflow: "hidden",
-          marginBottom: "1.5rem",
+          background: "#FFFFFF", border: "0.5px solid #D9C9A0",
+          borderRadius: 12, overflow: "hidden", marginBottom: "1.5rem",
         }}>
           {recent.length === 0 ? (
-            <div style={{
-              padding: "1.25rem 1rem", fontSize: 13,
-              color: "#B0A080", textAlign: "center",
-            }}>
+            <div style={{ padding: "1.25rem 1rem", fontSize: 13, color: "#B0A080", textAlign: "center" }}>
               No recent activity.
             </div>
           ) : recent.map(({ room, meta, dot, time }, i) => (
@@ -480,14 +428,9 @@ export default function Dashboard() {
                 borderBottom: i < recent.length - 1 ? "0.5px solid #EDE4D4" : "none",
               }}
             >
-              <div style={{
-                width: 8, height: 8, borderRadius: "50%",
-                background: dot, flexShrink: 0,
-              }} />
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: dot, flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 13, fontWeight: 500, margin: "0 0 1px", color: "#3A2000" }}>
-                  {room}
-                </p>
+                <p style={{ fontSize: 13, fontWeight: 500, margin: "0 0 1px", color: "#3A2000" }}>{room}</p>
                 <p style={{ fontSize: 11, color: "#7A6030", margin: 0 }}>{meta}</p>
               </div>
               <span style={{ fontSize: 11, color: "#B0A080" }}>{time}</span>
@@ -500,13 +443,11 @@ export default function Dashboard() {
           onClick={() => setShowLogoutModal(true)}
           style={{
             display: "flex", alignItems: "center", gap: 8,
-            background: "none",
-            border: "0.5px solid #C9991A",
+            background: "none", border: "0.5px solid #C9991A",
             borderRadius: 8, padding: "8px 14px",
             fontSize: 13, color: "#8B0000",
             cursor: "pointer", fontFamily: "'Poppins', sans-serif",
-            fontWeight: 500,
-            transition: "background 0.15s, color 0.15s",
+            fontWeight: 500, transition: "background 0.15s, color 0.15s",
           }}
           onMouseEnter={e => {
             e.currentTarget.style.background = "#8B0000";
@@ -519,9 +460,11 @@ export default function Dashboard() {
             e.currentTarget.style.borderColor = "#C9991A";
           }}
         >
-          <i className="ti ti-logout" /> Sign out
+          🚪 Sign out
         </button>
       </div>
+
+      <VoiceAssistant />
     </div>
   );
 }

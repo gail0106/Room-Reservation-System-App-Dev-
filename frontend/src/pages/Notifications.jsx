@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { subscribeUserToPush } from "../utils/pushNotifications";
+import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 const typeConfig = {
   pending: {
@@ -115,11 +117,13 @@ export default function Notifications() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "#C9991A", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <i className="ti ti-school" style={{ fontSize: 20, color: "#FFFFFF" }} />
-          </div>
+          <img
+            src={logo}
+            alt="RoomMate logo"
+            style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
+          />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>PUPSantaRosa</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>RoomMate</div>
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
@@ -459,6 +463,8 @@ export default function Notifications() {
           </div>
         </div>
       )}
+
+      <VoiceAssistant />
     </div>
   );
 }

@@ -4,6 +4,9 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import API from "../api/axios";
 
+import logo from "../assets/RoomMate.png";
+import VoiceAssistant from "../components/VoiceAssistant";
+
 const statusColors = {
   approved:  { bg: "#1D9E75", border: "#0F6E56", light: "#EDFAF3", text: "#1E7D4B", lightBorder: "#A8DFC1" },
   pending:   { bg: "#BA7517", border: "#854F0B", light: "#FAEEDA", text: "#854F0B", lightBorder: "#F0CA8A" },
@@ -195,12 +198,16 @@ function Calendar() {
   const fetchReservations = async () => {
     try {
       const response = await API.get("/reservations/calendar/");
-      const colored = response.data.map((ev) => {
-        const colors = getEventColors(ev);
-        return { ...ev, backgroundColor: colors.bg, borderColor: colors.border, textColor: colors.text };
-      });
+      const allowed = ["approved", "completed"];
+      const colored = response.data
+        .filter(ev => allowed.includes(ev.status))
+        .map((ev) => {
+          const colors = getEventColors(ev);
+          return { ...ev, backgroundColor: colors.bg, borderColor: colors.border, textColor: colors.text };
+        });
       setEvents(colored);
     } catch {
+
       setError("Failed to load calendar events.");
     } finally {
       setLoading(false);
@@ -217,11 +224,13 @@ function Calendar() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "#C9991A", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <i className="ti ti-school" style={{ fontSize: 20, color: "#FFFFFF" }} />
-          </div>
+          <img
+            src={logo}
+            alt="RoomMate logo"
+            style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
+          />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>PUPSantaRosa</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>RoomMate</div>
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
@@ -262,12 +271,9 @@ function Calendar() {
         {/* Legend */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: "1rem", flexWrap: "wrap" }}>
           {[
-            { dot: "#AAAAAA", label: "Past" },
-            { dot: "#1D9E75", label: "Today" },
-            { dot: "#C9991A", label: "Future (Pending)" },
-            { dot: "#1D9E75", label: "Future (Approved)", border: true },
+            { dot: "#AAAAAA", label: "Past (Approved)" },
+            { dot: "#1D9E75", label: "Today / Upcoming (Approved)" },
             { dot: "#378ADD", label: "Completed" },
-            { dot: "#D94F4F", label: "Cancelled/Rejected" },
           ].map(({ dot, label }) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: dot, display: "inline-block" }} />
@@ -328,6 +334,7 @@ function Calendar() {
       </div>
 
       <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+     <VoiceAssistant />
     </div>
   );
 }

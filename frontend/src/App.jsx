@@ -41,7 +41,7 @@ function App() {
         </ProtectedRoute>
       } />
     </Routes>
-    <VoiceAssistant />
+
     </>
   );
 }
