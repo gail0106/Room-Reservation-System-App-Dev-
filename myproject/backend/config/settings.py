@@ -4,14 +4,16 @@ SECRET_KEY = 'django-insecure-@n@fxidx1bnus+8cjylks&xf)^o@u*nm5-$3xzjhpdyi%5_@55
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ['*']
 ALLOWED_HOSTS = [
-    'room-reservation-system-app-dev-production.up.railway.app',
-    'localhost',
-    '127.0.0.1',
+    "localhost",
+    "127.0.0.1",
+    "room-reservation-system-app-dev-production.up.railway.app",
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4173",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://room-reservation-system-app-dev.vercel.app",
 ]
 
@@ -32,6 +34,7 @@ INSTALLED_APPS = [
     'django_filters',
     'apps.notifications.apps.NotificationsConfig',
     'corsheaders',
+    'webpush',
 ]
 
 MIDDLEWARE = [
@@ -107,6 +110,12 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+WEBPUSH_SETTINGS = {
+    'VAPID_PUBLIC_KEY': 'BEHvoB_t2mFH2cAT6BemWiBcjf5foR0WBTnz6JpUcbT5zTkQjXd_HVJxCiEKin4gltktlJIZ_zLkvTVS58-p9Cg',
+    'VAPID_PRIVATE_KEY': 'zxPy0ZzTOKNidtF0gbt3edMjVC0NscxxfQxoJVikRAA',
+    'VAPID_ADMIN_EMAIL': 'admin@reservationsystem.com',
+}
 
 
 # Internationalization

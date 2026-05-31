@@ -34,4 +34,5 @@ urlpatterns = [
     path('api/reservations/', include('apps.reservations.urls')),
 
     path('api/notifications/', include('apps.notifications.urls')),
+    path('webpush/', include('webpush.urls')), 
 ]
