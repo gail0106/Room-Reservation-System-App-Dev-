@@ -1,4 +1,5 @@
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 console.log('VAPID KEY LOADED:', VAPID_PUBLIC_KEY);
 
@@ -39,15 +40,15 @@ export async function subscribeUserToPush() {
     const subJson = subscription.toJSON();
     console.log('5. subscription JSON:', JSON.stringify(subJson));
 
-    const res = await fetch('/api/notifications/subscribe/', {
-    method: 'POST',
-    headers: {
+    const res = await fetch(`${API_URL}/notifications/subscribe/`, {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({
+      },
+      body: JSON.stringify({
         subscription: subJson,
-    }),
+      }),
     });
 
     console.log('6. fetch response status:', res.status);

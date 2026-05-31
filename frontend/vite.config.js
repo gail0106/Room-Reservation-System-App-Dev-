@@ -21,8 +21,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      // strategies: 'injectManifest',
-      strategies: 'generateSW',
+      strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
       includeAssets: ['icons/favicon.svg', 'icons/icon-512.png'],
