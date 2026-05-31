@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'django_filters',
     'apps.notifications.apps.NotificationsConfig',
     'corsheaders',
-    'django-webpush',
+    'webpush',
 ]
 
 MIDDLEWARE = [
