@@ -19,7 +19,19 @@ export default function OfflineBanner() {
   if (!isOffline) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-white text-center text-sm py-2 px-4 shadow-md">
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 9999,
+      backgroundColor: '#f59e0b',
+      color: 'white',
+      textAlign: 'center',
+      fontSize: '14px',
+      padding: '8px 16px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+    }}>
       You are offline. Showing cached data - some features may be unavailable.
     </div>
   );
