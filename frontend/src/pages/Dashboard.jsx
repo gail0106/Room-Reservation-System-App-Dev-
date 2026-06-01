@@ -34,6 +34,7 @@ export default function Dashboard() {
 
   const role = localStorage.getItem("role") || "student";
   const username = localStorage.getItem("username") || "User";
+  const email = localStorage.getItem("email") || "No email";
   const initials = username.slice(0, 2).toUpperCase();
 
   const isAdmin = role === "admin";
@@ -42,49 +43,90 @@ export default function Dashboard() {
   const [recent, setRecent] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [roomsRes, resRes] = await Promise.all([
-          API.get("/rooms/"),
-          API.get("/reservations/"),
-        ]);
+  const fetchData = async () => {
+    try {
+      const [roomsRes, resRes, notificationsRes] = await Promise.all([
+        API.get("/rooms/"),
+        API.get("/reservations/"),
+        API.get("/notifications/"),
+      ]);
 
-        const rooms = roomsRes.data?.data ?? roomsRes.data ?? [];
-        const reservations = resRes.data?.data ?? resRes.data ?? [];
+      const rooms = roomsRes.data?.data ?? roomsRes.data ?? [];
+      const reservations = resRes.data?.data ?? resRes.data ?? [];
 
-        const today = new Date().toDateString();
-        const myRes = reservations;
-        const pending = reservations.filter(r => r.status === "pending").length;
-        const todayBookings = reservations.filter(r => new Date(r.start_time).toDateString() === today).length;
+      const notifications =
+        notificationsRes.data?.data ??
+        notificationsRes.data ??
+        [];
 
-        setStats({
-          available: rooms.filter(r => r.is_available !== false).length,
-          myReservations: myRes.length,
-          pending,
-          todayBookings,
-        });
+      setUnreadNotifications(
+        notifications.filter(n => !n.is_read).length
+      );
 
-        setRecent(
-          myRes
-            .slice(-5)
-            .reverse()
-            .map(r => ({
-              room: `${r.room_name ?? r.room} — ${statusLabel[r.status] ?? r.status}`,
-              meta: r.start_time ? new Date(r.start_time).toLocaleString() : "",
-              dot: statusDot[r.status] ?? "#888",
-              time: r.created_at ? timeAgo(r.created_at) : "",
-            }))
-        );
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-    fetchData();
-  }, []);
+      const today = new Date().toDateString();
+      const myRes = reservations;
+
+      const pending = reservations.filter(
+        r => r.status === "pending"
+      ).length;
+
+      const todayBookings = reservations.filter(
+        r => new Date(r.start_time).toDateString() === today
+      ).length;
+
+      setStats({
+        available: rooms.filter(
+          r => r.is_available !== false
+        ).length,
+        myReservations: myRes.length,
+        pending,
+        todayBookings,
+      });
+
+      setRecent(
+        myRes
+          .slice(-5)
+          .reverse()
+          .map(r => ({
+            room: `${r.room_name ?? r.room} — ${
+              statusLabel[r.status] ?? r.status
+            }`,
+            meta: r.start_time
+              ? new Date(r.start_time).toLocaleString()
+              : "",
+            dot: statusDot[r.status] ?? "#888",
+            time: r.created_at
+              ? timeAgo(r.created_at)
+              : "",
+          }))
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  fetchData();
+}, []);
+
+useEffect(() => {
+  const handleClickOutside = () => {
+    setShowProfileMenu(false);
+  };
+
+  if (showProfileMenu) {
+    document.addEventListener("click", handleClickOutside);
+  }
+
+  return () => {
+    document.removeEventListener("click", handleClickOutside);
+  };
+}, [showProfileMenu]);
 
   function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr)) / 1000;
@@ -97,7 +139,7 @@ export default function Dashboard() {
     { label: "View Rooms",   desc: "Browse available spaces",      emoji: "🏫", color: "blue",   path: "/rooms" },
     { label: "My Bookings",  desc: "Manage your bookings",          emoji: "📋", color: "teal",   path: "/reservations" },
     { label: "Calendar",     desc: "Monthly overview",              emoji: "📅", color: "amber",  path: "/calendar" },
-    { label: "Notifications",desc: "Updates & alerts",              emoji: "🔔", color: "purple", path: "/notifications" },
+    
     ...(isAdmin ? [
       { label: "Manage Reservations", desc: "Approve or reject requests", emoji: "🛡️", color: "red",   path: "/admin/reservations" },
       { label: "Manage Rooms",        desc: "Add, edit or remove rooms",  emoji: "🏢", color: "green", path: "/admin/rooms" },
@@ -237,30 +279,247 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button
-            onClick={() => navigate("/notifications")}
-            style={{
-              width: 36, height: 36,
-              background: "rgba(255,255,255,0.12)",
-              border: "0.5px solid rgba(201,153,26,0.5)",
-              borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <i className="ti ti-bell" style={{ fontSize: 18, color: "#F5D98A" }} />
-          </button>
-          <div
-            title={`${username} (${role})`}
-            style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: isAdmin ? "#C9991A" : "#FFFFFF",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 13, fontWeight: 700,
-              color: isAdmin ? "#FFFFFF" : "#8B0000",
-              cursor: "default", border: "2px solid #C9991A",
-            }}
-          >
-            {initials}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => navigate("/notifications")}
+              style={{
+                width: 36,
+                height: 36,
+                background: "rgba(255,255,255,0.12)",
+                border: "0.5px solid rgba(201,153,26,0.5)",
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                position: "relative",
+              }}
+            >
+              <span
+              style={{
+                fontSize: 18,
+                lineHeight: 1,
+              }}
+            >
+              🔔
+            </span>
+            </button>
+
+            {unreadNotifications > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: -8,
+                  right: -10,
+                  minWidth: 26,
+                  height: 20,
+                  padding: "0 6px",
+                  borderRadius: 999,
+                  background: "#FF4D4F",
+                  color: "#FFFFFF",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
+                  border: "2px solid #8B0000",
+                  boxSizing: "border-box",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                }}
+              >
+                {unreadNotifications > 99
+                  ? "99+"
+                  : unreadNotifications}
+              </div>
+            )}
+          </div>
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProfileMenu(!showProfileMenu);
+              }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: isAdmin ? "#C9991A" : "#FFFFFF",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 13,
+                fontWeight: 700,
+                color: isAdmin ? "#FFFFFF" : "#8B0000",
+                border: "2px solid #C9991A",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              {initials}
+            </button>
+
+            {showProfileMenu && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: "absolute",
+                  top: 48,
+                  right: 0,
+                  width: 280,
+                  background: "#FFFFFF",
+                  border: "0.5px solid #D9C9A0",
+                  borderRadius: 12,
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                  overflow: "hidden",
+                  zIndex: 999,
+                }}
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    background: "#8B0000",
+                    color: "#FFFFFF",
+                    padding: "1rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: "50%",
+                      background: "#FFFFFF",
+                      color: "#8B0000",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {initials}
+                  </div>
+
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {username}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        opacity: 0.85,
+                      }}
+                    >
+                      {role}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div style={{ padding: "1rem" }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "#888",
+                        marginBottom: 2,
+                      }}
+                    >
+                      Username
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: "#333",
+                      }}
+                    >
+                      {username}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "#888",
+                        marginBottom: 2,
+                      }}
+                    >
+                      Email
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: "#333",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {email}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "#888",
+                        marginBottom: 2,
+                      }}
+                    >
+                      Role
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: "#333",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {role}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      height: 1,
+                      background: "#EDE4D4",
+                      margin: "12px 0",
+                    }}
+                  />
+
+                  <button
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowLogoutModal(true);
+                    }}
+                    style={{
+                      width: "100%",
+                      background: "#8B0000",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "10px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🚪 Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -413,30 +672,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={() => setShowLogoutModal(true)}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            background: "none", border: "0.5px solid #C9991A",
-            borderRadius: 8, padding: "8px 14px",
-            fontSize: 13, color: "#8B0000",
-            cursor: "pointer", fontFamily: "'Poppins', sans-serif",
-            fontWeight: 500, transition: "background 0.15s, color 0.15s",
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = "#8B0000";
-            e.currentTarget.style.color = "#FFFFFF";
-            e.currentTarget.style.borderColor = "#8B0000";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = "none";
-            e.currentTarget.style.color = "#8B0000";
-            e.currentTarget.style.borderColor = "#C9991A";
-          }}
-        >
-          🚪 Sign out
-        </button>
       </div>
 
       <VoiceAssistant />

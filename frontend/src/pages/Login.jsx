@@ -39,6 +39,9 @@ export default function Login() {
       localStorage.setItem("token", response.data.data.tokens.access);
       localStorage.setItem("role", user.role);
       localStorage.setItem("username", user.username);
+      if (user?.email) {
+        localStorage.setItem("email", user.email);
+      }
       navigate("/dashboard");
     } catch (err) {
       setError("Invalid username or password.");

@@ -8,6 +8,7 @@ export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("student");
   const [error, setError] = useState("");
@@ -16,8 +17,13 @@ export default function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !confirmPassword) {
       setError("Please fill in all fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
     setLoading(true);
@@ -121,21 +127,171 @@ export default function Register() {
 
             {/* Password */}
             <div style={{ marginBottom: "1rem" }}>
-              <label style={{ ...poppins, display: "block", fontSize: 12, fontWeight: 500, color: "#666", marginBottom: 6 }}>Password</label>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                <i className="ti ti-lock" style={{ position: "absolute", left: 10, fontSize: 16, color: "#aaa", pointerEvents: "none" }} />
+              <label
+                style={{
+                  ...poppins,
+                  display: "block",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#666",
+                  marginBottom: 6,
+                }}
+              >
+                Password
+              </label>
+
+              <div
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <i
+                  className="ti ti-lock"
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    fontSize: 16,
+                    color: "#aaa",
+                    pointerEvents: "none",
+                  }}
+                />
+
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  style={{ ...poppins, width: "100%", padding: "8px 34px 8px 34px", fontSize: 13, border: "0.5px solid #ccc", borderRadius: 8, outline: "none", boxSizing: "border-box" }}
+                  style={{
+                    ...poppins,
+                    width: "100%",
+                    padding: "8px 34px 8px 34px",
+                    fontSize: 13,
+                    border:
+                      confirmPassword
+                        ? password === confirmPassword
+                          ? "0.5px solid #28A745"
+                          : "0.5px solid #D9534F"
+                        : "0.5px solid #ccc",
+                    borderRadius: 8,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: "absolute", right: 10, background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: 16, padding: 0, display: "flex" }}>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#aaa",
+                    fontSize: 16,
+                    padding: 0,
+                    display: "flex",
+                  }}
+                >
                   <i className={showPassword ? "ti ti-eye-off" : "ti ti-eye"} />
                 </button>
               </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                style={{
+                  ...poppins,
+                  display: "block",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "#666",
+                  marginBottom: 6,
+                }}
+              >
+                Confirm Password
+              </label>
+
+              <div
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <i
+                  className="ti ti-lock-check"
+                  style={{
+                    position: "absolute",
+                    left: 10,
+                    fontSize: 16,
+                    color: "#aaa",
+                    pointerEvents: "none",
+                  }}
+                />
+
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={{
+                    ...poppins,
+                    width: "100%",
+                    padding: "8px 34px 8px 34px",
+                    fontSize: 13,
+                    border:
+                      confirmPassword
+                        ? password === confirmPassword
+                          ? "0.5px solid #28A745"
+                          : "0.5px solid #D9534F"
+                        : "0.5px solid #ccc",
+                    borderRadius: 8,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#aaa",
+                    fontSize: 16,
+                    padding: 0,
+                    display: "flex",
+                  }}
+                >
+                  <i className={showPassword ? "ti ti-eye-off" : "ti ti-eye"} />
+                </button>
+              </div>
+
+              {confirmPassword && (
+                <p
+                  style={{
+                    ...poppins,
+                    fontSize: 11,
+                    marginTop: 4,
+                    marginBottom: 0,
+                    color:
+                      password === confirmPassword
+                        ? "#28A745"
+                        : "#D9534F",
+                  }}
+                >
+                  {password === confirmPassword
+                    ? "✓ Passwords match"
+                    : "Passwords do not match"}
+                </p>
+              )}
             </div>
 
             {/* Role */}
