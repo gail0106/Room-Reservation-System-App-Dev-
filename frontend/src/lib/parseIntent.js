@@ -13,8 +13,8 @@ async function getRoomList() {
   try {
     const res  = await API.get("/rooms/");
     const data = res.data?.data ?? res.data ?? [];
-    cachedRoomsFull = data;                    // full objects for matchRoom
-    cachedRooms     = data.map((r) => r.name); // names for prompt
+    cachedRoomsFull = data;
+    cachedRooms     = data.map((r) => r.name);
     return cachedRooms;
   } catch {
     return [];
@@ -31,7 +31,7 @@ function buildSystemPrompt(rooms) {
   const roomList    = rooms.join(", ");
   const roomNumbers = rooms.map((r) => r.replace("Room ", "")).join(", ");
 
-return `You are a voice intent parser for a room reservation system. Reply ONLY with valid JSON, no markdown.
+  return `You are a voice intent parser for a room reservation system. Reply ONLY with valid JSON, no markdown.
 
 Today: ${new Date().toISOString().split("T")[0]}
 
@@ -42,7 +42,7 @@ INTENTS:
    reserve_room (no details) → { "intent": "reserve_room", "room": null, "date": null, "start_time": null, "end_time": null, "purpose": null }
 3. cancel_reservation → { "intent": "cancel_reservation", "room": "<room name or null>", "date": "<YYYY-MM-DD or null>" }
 4. search_rooms → { "intent": "search_rooms", "room": "<room name or null>", "capacity": <number or null>, "location": "<Nth Floor or null>" }
-5. converse → { "intent": "converse", "reply": "<1-2 sentence spoken reply, warm accomodating>" }
+5. converse → { "intent": "converse", "reply": "<1-2 sentence spoken reply, warm and accommodating>" }
 6. unknown → { "intent": "unknown" }
 
 RULES:
@@ -54,7 +54,7 @@ Purpose: extract what follows "for", "for a", "para sa". If none, use "Voice res
 Cancel triggers: "cancel my booking", "cancel my reservation", "i-cancel", "bawiin". Extract room+date if mentioned, otherwise return nulls.
 Search triggers: "find a room", "look for", "search for", "maghanap". Extract capacity as minimum, location as "Nth Floor".
 Language: English and Filipino. "bukas"=tomorrow, "ngayon"=today, "mula"=from, "hanggang"=to/until, "para sa"=for, "salamat"=thanks. Reply in same language as user.
-Converse: greetings, thanks, bye, help, kamusta, salamat. Short warm replies, never say you're an AI. Always ask how can you help user.
+Converse: greetings, thanks, bye, help, kamusta, salamat. Short warm replies, never say you're an AI. Always ask how you can help.
 Navigate "manage_reservations": "manage reservations". "manage_rooms": "manage rooms". "bookings": "my bookings", "my reservations".
 Validation: only return full reserve_room if room+date+start_time+end_time all present. Otherwise all nulls.`;
 }
@@ -78,7 +78,6 @@ export async function parseIntent(transcript) {
   try {
     return await tryGenerate(groq1, system, transcript);
   } catch (err) {
-    // Check all possible shapes the rate limit error can take
     const message = err?.message ?? err?.cause?.message ?? "";
     const status  = err?.status ?? err?.cause?.status ?? err?.statusCode ?? 0;
 
@@ -88,12 +87,18 @@ export async function parseIntent(transcript) {
       message.includes("429") ||
       message.includes("Too Many Requests");
 
+    const isInvalidKey =
+      status === 401 ||
+      message.includes("Invalid API Key") ||
+      message.includes("AI_APICallError");
+
     const isMissingKey =
       message.includes("API key is missing") ||
       message.includes("AI_LoadAPIKeyError");
 
-    if (isRateLimit && !isMissingKey) {
-      console.warn("Primary key rate limited, switching to backup key...");
+    // ✅ now includes isInvalidKey in the condition
+    if ((isRateLimit || isInvalidKey) && !isMissingKey) {
+      console.warn("Primary key failed, switching to backup key...");
       return await tryGenerate(groq2, system, transcript);
     }
 
