@@ -204,6 +204,25 @@ export default function useVoiceCommands(navigate) {
         }
       }
 
+      // ── GRATITUDE SHORTCUT ────────────────────────────────────────────────────
+      const gratitudeWords = ["thank you", "thanks", "thank u", "salamat", "ty", "thx"];
+      const gratitudeReplies = [
+        "No problem! Let me know if there's anything else I can help with.",
+        "Anytime! Just say the word.",
+        "You're welcome! Happy to help.",
+        "Of course! Is there anything else you need?",
+        "Glad I could help!",
+      ];
+
+      if (gratitudeWords.some(w => text.toLowerCase().includes(w))) {
+        const reply = gratitudeReplies[Math.floor(Math.random() * gratitudeReplies.length)];
+        setVoiceStatus("idle");
+        speak(reply);
+        processingRef.current = false;
+        resetTranscript();
+        return;
+      }
+
       // ── NORMAL INTENT PARSING ─────────────────────────────────────────────
       const data = await parseIntent(text);
       console.log("Intent:", data);
