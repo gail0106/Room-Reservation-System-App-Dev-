@@ -5,6 +5,12 @@ import API from "../api/axios";
 import logo from "../assets/RoomMate.png";
 import VoiceAssistant from "../components/VoiceAssistant";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faArrowLeft,
+  faDoorOpen,
+} from "@fortawesome/free-solid-svg-icons";
+
 const STATUS_STYLES = {
   pending:   { bg: "#FFF4E5", color: "#854F0B", border: "#F5D9A8", label: "Pending" },
   approved:  { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", label: "Approved" },
@@ -117,7 +123,7 @@ export default function AdminReservations() {
       marginBottom: 16, display: "flex", flexDirection: "column", gap: 8,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <i className="ti ti-building" style={{ fontSize: 14, color: "#C9991A", flexShrink: 0 }} />
+        <FontAwesomeIcon icon={faDoorOpen} style={{ fontSize: 14, color: "#C9991A", flexShrink: 0 }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: "#1A5CA8" }}>
           {res.room_name ?? `Room #${res.room}`}
         </span>
@@ -194,7 +200,10 @@ export default function AdminReservations() {
             onMouseEnter={e => { e.currentTarget.style.background = "#C9991A"; e.currentTarget.style.borderColor = "#C9991A"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(201,153,26,0.5)"; }}
           >
-            <i className="ti ti-arrow-left" /> Dashboard
+            <>
+            <FontAwesomeIcon icon={faArrowLeft} />
+              {" "}Dashboard
+            </>
           </button>
         </div>
       </header>
@@ -310,7 +319,7 @@ export default function AdminReservations() {
                             borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
                             border: "0.5px solid #D9C070",
                           }}>
-                            <i className="ti ti-door" style={{ fontSize: 16, color: "#C9991A" }} />
+                            <FontAwesomeIcon icon={faDoorOpen} style={{ fontSize: 16, color: "#C9991A" }} />
                           </div>
                           <div>
                             <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A5CA8" }}>
@@ -325,7 +334,7 @@ export default function AdminReservations() {
                           </div>
                         </div>
 
-                        {/* Purpose pill — shown inline in the list card */}
+                        {/* Purpose pill */}
                         {res.purpose && (
                           <div style={{
                             display: "inline-flex", alignItems: "center", gap: 5,

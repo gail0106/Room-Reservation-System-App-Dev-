@@ -6,6 +6,22 @@ import { invalidateRoomCache } from "../lib/parseIntent"; // 👈 add this
 import logo from "../assets/RoomMate.png";
 import VoiceAssistant from "../components/VoiceAssistant";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faArrowLeft,
+  faPlus,
+  faDoorOpen,
+  faUsers,
+  faLocationDot,
+  faTrash,
+  faPen,
+  faXmark,
+  faFloppyDisk,
+  faTriangleExclamation,
+  faCircleCheck,
+  faBuilding,
+} from "@fortawesome/free-solid-svg-icons";
+
 export default function AdminRooms() {
   const navigate = useNavigate();
 
@@ -186,21 +202,33 @@ export default function AdminRooms() {
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
           </div>
         </div>
-        <button
-          onClick={() => navigate("/dashboard")}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: "rgba(255,255,255,0.12)",
-            border: "0.5px solid rgba(201,153,26,0.5)",
-            borderRadius: 8, padding: "6px 12px",
-            fontSize: 13, color: "#FFFFFF", cursor: "pointer",
-            fontFamily: "'Poppins', sans-serif", fontWeight: 500,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#C9991A"; e.currentTarget.style.borderColor = "#C9991A"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(201,153,26,0.5)"; }}
-        >
-          <i className="ti ti-arrow-left" /> Dashboard
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 600, background: "#C9991A", color: "#FFFFFF",
+            borderRadius: 20, padding: "4px 10px",
+            border: "0.5px solid rgba(255,255,255,0.3)", letterSpacing: "0.04em",
+          }}>
+            Admin
+          </span>
+          <button
+            onClick={() => navigate("/dashboard")}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "rgba(255,255,255,0.12)",
+              border: "0.5px solid rgba(201,153,26,0.5)",
+              borderRadius: 8, padding: "6px 12px",
+              fontSize: 13, color: "#FFFFFF", cursor: "pointer",
+              fontFamily: "'Poppins', sans-serif", fontWeight: 500,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#C9991A"; e.currentTarget.style.borderColor = "#C9991A"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(201,153,26,0.5)"; }}
+          >
+            <>
+              <FontAwesomeIcon icon={faArrowLeft} />
+              {" "}Dashboard
+            </>
+          </button>
+        </div>
       </header>
 
       {/* ── Page body ── */}
@@ -232,7 +260,10 @@ export default function AdminRooms() {
             onMouseEnter={e => e.currentTarget.style.background = "#C9991A"}
             onMouseLeave={e => e.currentTarget.style.background = "#8B0000"}
           >
-            <i className="ti ti-plus" /> Add Room
+            <>
+              <FontAwesomeIcon icon={faPlus} />
+              {" "}Add Room
+            </>
           </button>
         </div>
 
@@ -243,7 +274,10 @@ export default function AdminRooms() {
             background: "#F5E8E8", border: "0.5px solid #D9A0A0",
             borderRadius: 8, padding: "10px 14px", marginBottom: 12,
           }}>
-            <i className="ti ti-alert-circle" style={{ color: "#8B0000" }} />
+            <FontAwesomeIcon
+              icon={faTriangleExclamation}
+              style={{ color: "#8B0000" }}
+            />
             <span style={{ fontSize: 13, color: "#8B0000" }}>{error}</span>
           </div>
         )}
@@ -285,21 +319,30 @@ export default function AdminRooms() {
                     background: isOccupied(room) ? "#F5E8E8" : "#EDFAF3",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <i className="ti ti-door" style={{
-                      fontSize: 20,
-                      color: isOccupied(room) ? "#8B0000" : "#1E7D4B",
-                    }} />
+                    <FontAwesomeIcon
+                      icon={faDoorOpen}
+                      style={{
+                        fontSize: 20,
+                        color: isOccupied(room) ? "#8B0000" : "#1E7D4B",
+                      }}
+                    />
                   </div>
                   <div>
                     <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 2px", color: "#1A5CA8" }}>
                       {room.name}
                     </p>
                     <p style={{ fontSize: 12, color: "#7A6030", margin: 0 }}>
-                      <i className="ti ti-users" style={{ fontSize: 11, marginRight: 4 }} />
+                      <FontAwesomeIcon
+                        icon={faUsers}
+                        style={{ fontSize: 11, marginRight: 4 }}
+                      />
                       Capacity: {room.capacity}
                       {room.location && (
                         <> &nbsp;·&nbsp;
-                          <i className="ti ti-map-pin" style={{ fontSize: 11, marginRight: 4 }} />
+                          <FontAwesomeIcon
+                            icon={faLocationDot}
+                            style={{ fontSize: 11, marginRight: 4 }}
+                          />
                           {room.location}
                         </>
                       )}
@@ -342,7 +385,7 @@ export default function AdminRooms() {
                     onMouseEnter={e => e.currentTarget.style.background = "#C9991A22"}
                     onMouseLeave={e => e.currentTarget.style.background = "#FDF0CC"}
                   >
-                    ✏️
+                  <FontAwesomeIcon icon={faPen} />
                   </button>
 
                   {/* Delete */}
@@ -358,7 +401,7 @@ export default function AdminRooms() {
                     onMouseEnter={e => e.currentTarget.style.background = "#8B000022"}
                     onMouseLeave={e => e.currentTarget.style.background = "#F5E8E8"}
                   >
-                    🗑️
+                    <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </div>
               </div>
@@ -372,7 +415,15 @@ export default function AdminRooms() {
             textAlign: "center", padding: "3rem 1rem",
             color: "#B0A080", fontSize: 13,
           }}>
-            <i className="ti ti-building-off" style={{ fontSize: 32, display: "block", marginBottom: 8, color: "#C9991A" }} />
+            <FontAwesomeIcon
+              icon={faBuilding}
+              style={{
+                fontSize: 32,
+                display: "block",
+                marginBottom: 8,
+                color: "#C9991A",
+              }}
+            />
             No rooms yet. Click "Add Room" to get started.
           </div>
         )}
@@ -406,8 +457,10 @@ export default function AdminRooms() {
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <i className={`ti ${editingRoom ? "ti-pencil" : "ti-building-plus"}`}
-                  style={{ fontSize: 18, color: "#F5D98A" }} />
+                <FontAwesomeIcon
+                  icon={editingRoom ? faPen : faBuilding}
+                  style={{ fontSize: 18, color: "#F5D98A" }}
+                />
                 <span style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>
                   {editingRoom ? "Edit Room" : "Add New Room"}
                 </span>
@@ -421,7 +474,7 @@ export default function AdminRooms() {
                   cursor: "pointer", color: "#FFFFFF", fontSize: 16,
                 }}
               >
-                <i className="ti ti-x" />
+                <FontAwesomeIcon icon={faXmark} />
               </button>
             </div>
 
@@ -435,7 +488,10 @@ export default function AdminRooms() {
                   background: "#EDFAF3", border: "0.5px solid #A8DFC1",
                   borderRadius: 8, padding: "8px 12px", marginBottom: 14,
                 }}>
-                  <i className="ti ti-circle-check" style={{ color: "#1E7D4B" }} />
+                  <FontAwesomeIcon
+                    icon={faCircleCheck}
+                    style={{ color: "#1E7D4B" }}
+                  />
                   <span style={{ fontSize: 12, color: "#1E7D4B" }}>{formSuccess}</span>
                 </div>
               )}
@@ -447,7 +503,10 @@ export default function AdminRooms() {
                   background: "#F5E8E8", border: "0.5px solid #D9A0A0",
                   borderRadius: 8, padding: "8px 12px", marginBottom: 14,
                 }}>
-                  <i className="ti ti-alert-circle" style={{ color: "#8B0000" }} />
+                  <FontAwesomeIcon
+                    icon={faTriangleExclamation}
+                    style={{ color: "#8B0000" }}
+                  />
                   <span style={{ fontSize: 12, color: "#8B0000" }}>{formError}</span>
                 </div>
               )}
@@ -548,7 +607,9 @@ export default function AdminRooms() {
                     onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#C9991A"; }}
                     onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = "#8B0000"; }}
                   >
-                    <i className={`ti ${editingRoom ? "ti-device-floppy" : "ti-plus"}`} />
+                    <FontAwesomeIcon
+                      icon={editingRoom ? faFloppyDisk : faPlus}
+                    />
                     {submitting ? "Saving..." : editingRoom ? "Save Changes" : "Add Room"}
                   </button>
                   <button
@@ -599,7 +660,10 @@ export default function AdminRooms() {
               background: "#F5E8E8", margin: "0 auto 14px",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <i className="ti ti-trash" style={{ fontSize: 24, color: "#8B0000" }} />
+              <FontAwesomeIcon
+                icon={faTrash}
+                style={{ fontSize: 24, color: "#8B0000" }}
+              />
             </div>
             <p style={{ fontSize: 15, fontWeight: 600, textAlign: "center", margin: "0 0 6px", color: "#5A0000" }}>
               Delete Room?
@@ -614,7 +678,10 @@ export default function AdminRooms() {
                 background: "#F5E8E8", border: "0.5px solid #D9A0A0",
                 borderRadius: 8, padding: "8px 12px", marginBottom: 14,
               }}>
-                <i className="ti ti-alert-circle" style={{ color: "#8B0000" }} />
+                <FontAwesomeIcon
+                  icon={faTriangleExclamation}
+                  style={{ color: "#8B0000" }}
+                />
                 <span style={{ fontSize: 12, color: "#8B0000" }}>{deleteError}</span>
               </div>
             )}

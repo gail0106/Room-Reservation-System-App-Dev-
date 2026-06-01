@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/RoomMate.png";
 import VoiceAssistant from "../components/VoiceAssistant";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDoorOpen } from "@fortawesome/free-solid-svg-icons";
+
 const statusConfig = {
   approved:  { bg: "#EDFAF3", color: "#1E7D4B", border: "#A8DFC1", dot: "#1D9E75", label: "Approved"  },
   pending:   { bg: "#FFF4E5", color: "#854F0B", border: "#F5D9A8", dot: "#BA7517", label: "Pending"   },
@@ -95,10 +98,10 @@ export default function MyReservations() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <img
-          src={logo}
-          alt="RoomMate logo"
-          style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
-        />
+            src={logo}
+            alt="RoomMate logo"
+            style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }}
+          />
           <div>
             <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF" }}>RoomMate</div>
             <div style={{ fontSize: 11, color: "#F5D98A" }}>Room Reservation System</div>
@@ -118,7 +121,7 @@ export default function MyReservations() {
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(201,153,26,0.5)"; }}
         >
           <i className="ti ti-arrow-left" style={{ fontSize: 14 }} />
-          Back to Dashboard
+          Dashboard
         </button>
       </header>
 
@@ -269,7 +272,7 @@ export default function MyReservations() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       flexShrink: 0,
                     }}>
-                      <i className="ti ti-building" style={{ fontSize: 18, color: status.color }} />
+                      <FontAwesomeIcon icon={faDoorOpen} style={{ fontSize: 18, color: status.color }} />
                     </div>
 
                     {/* Details */}
