@@ -10,13 +10,13 @@ import Calendar from "./pages/Calendar";
 import Notifications from "./pages/Notifications";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import VoiceAssistant from "./components/VoiceAssistant";
-
-
+import OfflineBanner from "./components/OfflineBanner"; 
 
 function App() {
 
   return (
     <>
+      <OfflineBanner /> {/* ← ADD THIS */}
     <Routes>
       {/* Public */}
       <Route path="/" element={<Login />} />
