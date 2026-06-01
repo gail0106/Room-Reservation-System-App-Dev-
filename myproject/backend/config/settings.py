@@ -1,18 +1,39 @@
+import os
+# import dj_database_url
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@n@fxidx1bnus+8cjylks&xf)^o@u*nm5-$3xzjhpdyi%5_@55'
+# SECRET_KEY = 'django-insecure-@n@fxidx1bnus+8cjylks&xf)^o@u*nm5-$3xzjhpdyi%5_@55'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
 
-# ALLOWED_HOSTS = ['*']
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-@n@fxidx1bnus+8cjylks&xf)^o@u*nm5-$3xzjhpdyi%5_@55')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+
 ALLOWED_HOSTS = [
-    'room-reservation-system-app-dev-production.up.railway.app',
-    'localhost',
-    '127.0.0.1',
+    "localhost",
+    "127.0.0.1",
+    "room-reservation-system-app-dev-production.up.railway.app",
+    ".onrender.com",
 ]
 
+# ALLOWED_HOSTS = ['*']
+
 CORS_ALLOWED_ORIGINS = [
-    "https://room-reservation-system-app-dev.vercel.app",
+    "http://localhost:4173",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    # "https://room-reservation-system-app-dev.vercel.app",
+    "https://appdev-try3.vercel.app",
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
 ]
 
 # Application definition
@@ -32,11 +53,13 @@ INSTALLED_APPS = [
     'django_filters',
     'apps.notifications.apps.NotificationsConfig',
     'corsheaders',
+    'webpush',
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -81,6 +104,10 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#     'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+# }
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -108,6 +135,17 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# WEBPUSH_SETTINGS = {
+#     'VAPID_PUBLIC_KEY': 'BEHvoB_t2mFH2cAT6BemWiBcjf5foR0WBTnz6JpUcbT5zTkQjXd_HVJxCiEKin4gltktlJIZ_zLkvTVS58-p9Cg',
+#     'VAPID_PRIVATE_KEY': 'zxPy0ZzTOKNidtF0gbt3edMjVC0NscxxfQxoJVikRAA',
+#     'VAPID_ADMIN_EMAIL': 'admin@reservationsystem.com',
+# }
+WEBPUSH_SETTINGS = {
+    'VAPID_PUBLIC_KEY': os.environ.get('VAPID_PUBLIC_KEY'),
+    'VAPID_PRIVATE_KEY': os.environ.get('VAPID_PRIVATE_KEY'),
+    'VAPID_ADMIN_EMAIL': os.environ.get('VAPID_ADMIN_EMAIL', 'admin@reservationsystem.com'),
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -125,5 +163,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 AUTH_USER_MODEL = 'accounts.User'

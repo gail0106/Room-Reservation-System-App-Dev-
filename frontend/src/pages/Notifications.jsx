@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { subscribeUserToPush } from "../utils/pushNotifications";
 import logo from "../assets/RoomMate.png";
 import VoiceAssistant from "../components/VoiceAssistant";
 
@@ -65,6 +66,26 @@ export default function Notifications() {
   const [error, setError] = useState("");
   const [selectedNotif, setSelectedNotif] = useState(null);
   const navigate = useNavigate();
+
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+
+  const handleEnableNotifications = async () => {
+    alert('button clicked!');
+    console.log('handleEnableNotifications called!');
+    console.log('Current permission:', Notification.permission);
+    try {
+      const permission = await Notification.requestPermission();
+      console.log('Permission result:', permission); 
+      if (permission === "granted") {
+        await subscribeUserToPush();
+        setPushSubscribed(true);
+      } else {
+        alert("Please allow notifications in your browser settings.");
+      }
+    } catch (err) {
+      console.error("Push subscription error:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -134,16 +155,33 @@ export default function Notifications() {
               Tap a notification to view reservation details.
             </p>
           </div>
-          {notifications.length > 0 && (
-            <span style={{
-              fontSize: 11, fontWeight: 600,
-              background: "#8B0000", color: "#FFFFFF",
-              border: "0.5px solid #C9991A",
-              borderRadius: 20, padding: "3px 10px",
-            }}>
-              {notifications.length} total
-            </span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {notifications.length > 0 && (
+              <span style={{
+                fontSize: 11, fontWeight: 600,
+                background: "#8B0000", color: "#FFFFFF",
+                border: "0.5px solid #C9991A",
+                borderRadius: 20, padding: "3px 10px",
+              }}>
+                {notifications.length} total
+              </span>
+            )}
+            <button
+              onClick={handleEnableNotifications}
+              style={{
+                display: "flex", alignItems: "center", gap: 5,
+                background: pushSubscribed ? "#EDFAF3" : "#FDF5DF",
+                border: `0.5px solid ${pushSubscribed ? "#A8DFC1" : "#C9991A"}`,
+                borderRadius: 20, padding: "3px 10px",
+                fontSize: 11, fontWeight: 600,
+                color: pushSubscribed ? "#1E7D4B" : "#854F0B",
+                cursor: "pointer", fontFamily: "'Poppins', sans-serif",
+              }}
+            >
+              <i className={`ti ${pushSubscribed ? "ti-bell-check" : "ti-bell"}`} style={{ fontSize: 13 }} />
+              {pushSubscribed ? "Subscribed" : "Enable Notifications"}
+            </button>
+          </div>
         </div>
 
         {/* Loading */}
