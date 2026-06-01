@@ -1,4 +1,4 @@
-# 🚀RoomMate
+# 🖥️🏫RoomMate
 
 RooMate is an online classroom reservation system developed for schools as our Final term requirement in the academic course App Development. RoomMate allows for three (3) levels of access depending on the user's position within their educational institution: (1) Admin-level, (2) Faculty-level, and (3) Student-level.
 
