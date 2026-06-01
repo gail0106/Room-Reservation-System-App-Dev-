@@ -15,14 +15,35 @@ export default function VoiceButton() {
 
   const helpRef = useRef(null);
 
-  const {
-    displayTranscript,
-    listening,
-    isSpeaking,
-    assistantActive,
-    startListening,
-    stopListening,
-  } = useVoiceCommands(navigate);
+const {
+  displayTranscript,
+  listening,
+  isSpeaking,
+  assistantActive,
+  voiceStatus,       // 👈 add
+  startListening,
+  stopListening,
+} = useVoiceCommands(navigate);
+
+const getState = () => {
+  if (listening)       return "listening";
+  if (isSpeaking)      return "speaking";
+  if (assistantActive) return "active";
+  return "inactive";
+};
+
+const getLabel = () => {
+  if (voiceStatus === "processing")  return "Thinking…";
+  if (voiceStatus === "searching")   return "Searching…";
+  if (voiceStatus === "reserving")   return "Reserving…";
+  if (voiceStatus === "cancelling")  return "Cancelling…";
+  if (listening)                     return "Listening…";
+  if (isSpeaking)                    return "Speaking…";
+  if (assistantActive)               return "Ready";
+  return "Voice off";
+};
+
+const state = getState();
 
   useEffect(() => {
   const handleClickOutside = (event) => {
@@ -38,14 +59,8 @@ export default function VoiceButton() {
   };
 }, []);
 
-  const getState = () => {
-    if (listening) return "listening";
-    if (isSpeaking) return "speaking";
-    if (assistantActive) return "active";
-    return "inactive";
-  };
 
-  const state = getState();
+ 
 
   const commands = [
     {
@@ -282,6 +297,18 @@ export default function VoiceButton() {
         .voice-label.listening { color: #15803d; }
         .voice-label.active    { color: #991b1b; }
 
+        .voice-label.processing,
+        .voice-label.searching,
+        .voice-label.reserving,
+        .voice-label.cancelling {
+          color: #C9991A;
+          animation: label-pulse 0.9s ease-in-out infinite alternate;
+        }
+        @keyframes label-pulse {
+          from { opacity: 1; }
+          to   { opacity: 0.4; }
+        }
+
         .voice-ring {
           position: relative;
           width: 68px;
@@ -412,12 +439,9 @@ export default function VoiceButton() {
 
         {/* Label + mic row */}
         <div className="voice-bottom-row">
-          <span className={`voice-label ${state}`}>
-            {state === "listening" && "Listening…"}
-            {state === "speaking"  && "Speaking…"}
-            {state === "inactive"  && "Voice off"}
-            {state === "active"    && "Ready"}
-          </span>
+        <span className={`voice-label ${state} ${voiceStatus}`}>
+          {getLabel()}
+        </span>
 
           <div className={`voice-ring ${state}`} style={{ position: "relative" }}>
 
