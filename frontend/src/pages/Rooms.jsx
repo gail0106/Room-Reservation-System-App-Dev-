@@ -4,6 +4,9 @@ import API from "../api/axios";
 import logo from "../assets/RoomMate.png";
 import VoiceAssistant from "../components/VoiceAssistant";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDoorOpen } from "@fortawesome/free-solid-svg-icons";
+
 export default function Rooms() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -204,12 +207,12 @@ export default function Rooms() {
   return (
     <div style={{ fontFamily: "'Poppins', sans-serif", minHeight: "100vh", background: "#F7F3EE" }}>
       <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-      * { font-family: 'Poppins', sans-serif; }
-      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      .spin { animation: spin 0.8s linear infinite; display: inline-block; }
-      input::placeholder { font-style: italic; color: #B0A080; }
-    `}</style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        * { font-family: 'Poppins', sans-serif; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+        input::placeholder { font-style: italic; color: #B0A080; }
+      `}</style>
 
       {/* ── Header ── */}
       <header style={{
@@ -249,33 +252,19 @@ export default function Rooms() {
       <div style={{ padding: "1.5rem", maxWidth: 900, margin: "0 auto" }}>
 
         <div style={{ marginBottom: "1rem" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>
-          Available Rooms
-        </h1>
-        <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>
-          Click a room to make a reservation.
-        </p>
-      </div>
+          <h1 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px", color: "#5A0000" }}>
+            Available Rooms
+          </h1>
+          <p style={{ fontSize: 13, color: "#7A6030", margin: 0 }}>
+            Click a room to make a reservation.
+          </p>
+        </div>
 
-      {/* ── Search bar ── */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 10,
-        marginBottom: 10,
-      }}>
-        {/* 🔍 Search emoji on the left */}
-        <span style={{
-          fontSize: 22, flexShrink: 0,
-          display: "flex", alignItems: "center",
-        }}>
-          🔍
-        </span>
-
-        {/* Search fields grid */}
+        {/* ── Search bar ── */}
         <div style={{
-          flex: 1,
           display: "grid",
           gridTemplateColumns: "1fr 1fr 1fr",
-          gap: 8,
+          gap: 8, marginBottom: 10,
         }}>
           {/* Room name */}
           <div style={{ position: "relative" }}>
@@ -285,7 +274,7 @@ export default function Rooms() {
             }} />
             <input
               type="text"
-              placeholder="Search room...e.g. Room 101"
+              placeholder="Search room"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
               style={inputStyle}
@@ -302,7 +291,7 @@ export default function Rooms() {
             }} />
             <input
               type="number"
-              placeholder="Min capacity..."
+              placeholder="Min capacity"
               value={searchCapacity}
               onChange={(e) => setSearchCapacity(e.target.value)}
               style={inputStyle}
@@ -319,7 +308,7 @@ export default function Rooms() {
             }} />
             <input
               type="text"
-              placeholder="Floor... e.g. 2nd Floor"
+              placeholder="Floor"
               value={searchLocation}
               onChange={(e) => setSearchLocation(e.target.value)}
               style={inputStyle}
@@ -328,29 +317,6 @@ export default function Rooms() {
             />
           </div>
         </div>
-      </div>
-
-      {/* ── Search labels row ── */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr",
-        gap: 8, marginBottom: 14,
-        paddingLeft: 32,
-      }}>
-        {[
-          { emoji: "🚪", label: "Room Name" },
-          { emoji: "👥", label: "Min Capacity" },
-          { emoji: "🏢", label: "Floor / Location" },
-        ].map(({ emoji, label }) => (
-          <div key={label} style={{
-            display: "flex", alignItems: "center", gap: 5,
-            fontSize: 11, color: "#9A7840",
-          }}>
-            <span style={{ fontSize: 13 }}>{emoji}</span>
-            {label}
-          </div>
-        ))}
-      </div>
 
         {/* ── Active filter row ── */}
         {hasSearch && (
@@ -423,6 +389,7 @@ export default function Rooms() {
         {!loading && Object.entries(groupedRooms).map(([floor, floorRooms]) => (
           <div key={floor} style={{ marginBottom: "1.5rem" }}>
 
+            {/* Floor header */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: 6, background: "#8B0000",
@@ -457,7 +424,7 @@ export default function Rooms() {
                     boxShadow: isSelected ? "0 2px 8px rgba(139,0,0,0.10)" : "none",
                   }}>
 
-                    {/* Room row */}
+                    {/* ── FIX: Room row — single, correctly closed flex container ── */}
                     <div
                       onClick={() => handleRoomClick(room)}
                       style={{
@@ -468,17 +435,20 @@ export default function Rooms() {
                       onMouseEnter={e => { if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#C9991A"; }}
                       onMouseLeave={e => { if (!isSelected) e.currentTarget.parentElement.style.borderColor = "#D9C9A0"; }}
                     >
+                      {/* Left: icon + details */}
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{
                           width: 38, height: 38,
                           background: isOccupied ? "#F5E8E8" : "#EDFAF3",
                           borderRadius: 8,
-                          display: "flex", alignItems: "center", justifyContent: "center",
+                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                         }}>
-                          <i className="ti ti-door" style={{
-                            fontSize: 20, color: isOccupied ? "#8B0000" : "#1E7D4B",
-                          }} />
+                          <FontAwesomeIcon
+                            icon={faDoorOpen}
+                            style={{ fontSize: 18, color: isOccupied ? "#8B0000" : "#1E7D4B" }}
+                          />
                         </div>
+
                         <div>
                           <p style={{ fontSize: 14, fontWeight: 600, margin: "0 0 2px", color: "#1A5CA8" }}>
                             {room.name}
@@ -496,24 +466,15 @@ export default function Rooms() {
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 500, padding: "3px 8px",
-                          borderRadius: 20,
-                          background: isOccupied ? "#F5E8E8" : "#EDFAF3",
-                          color: isOccupied ? "#8B0000" : "#1E7D4B",
-                          border: `0.5px solid ${isOccupied ? "#D9A0A0" : "#A8DFC1"}`,
-                        }}>
-                          {isOccupied ? "Occupied" : "Available"}
-                        </span>
-                        <i
-                          className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
-                          style={{ fontSize: 16, color: "#C9991A" }}
-                        />
-                      </div>
+                      {/* Right: chevron */}
+                      <i
+                        className={`ti ${isSelected ? "ti-chevron-up" : "ti-chevron-down"}`}
+                        style={{ fontSize: 16, color: "#C9991A" }}
+                      />
                     </div>
+                    {/* ── End room row ── */}
 
-                    {/* Reservation form */}
+                    {/* ── Reservation form ── */}
                     {isSelected && (
                       <div style={{
                         borderTop: "0.5px solid #EDE4D4",
@@ -563,8 +524,7 @@ export default function Rooms() {
                                 value={startTime}
                                 onChange={e => setStartTime(e.target.value)}
                                 required
-                                min={todayAt(HOUR_MIN)}
-                                max={todayAt(HOUR_MAX - 1, 59)}
+                                min={todayAt(0, 0)}
                                 style={{
                                   width: "100%", padding: "7px 10px", fontSize: 13,
                                   border: "0.5px solid #D9C9A0", borderRadius: 8,
@@ -588,8 +548,7 @@ export default function Rooms() {
                                 value={endTime}
                                 onChange={e => setEndTime(e.target.value)}
                                 required
-                                min={startTime || todayAt(HOUR_MIN)}
-                                max={todayAt(HOUR_MAX)}
+                                min={startTime || todayAt(0, 0)}
                                 style={{
                                   width: "100%", padding: "7px 10px", fontSize: 13,
                                   border: "0.5px solid #D9C9A0", borderRadius: 8,

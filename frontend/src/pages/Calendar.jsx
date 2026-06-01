@@ -247,7 +247,7 @@ function Calendar() {
           onMouseEnter={e => { e.currentTarget.style.background = "#C9991A"; e.currentTarget.style.borderColor = "#C9991A"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(201,153,26,0.5)"; }}
         >
-          <i className="ti ti-arrow-left" style={{ fontSize: 14 }} /> Back to Dashboard
+          <i className="ti ti-arrow-left" style={{ fontSize: 14 }} /> Dashboard
         </button>
       </header>
 
