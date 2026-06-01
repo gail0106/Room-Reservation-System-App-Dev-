@@ -111,7 +111,7 @@ export default function useVoiceCommands(navigate) {
             cancelStepRef.current   = CANCEL_STEP.NONE;
             cancelTargetRef.current = null;
             setVoiceStatus("idle");
-            speak("Done! Your reservation has been cancelled successfully.");
+            speak("Done! Your reservation has been cancelled successfully. Redirecting to your bookings.", () => navigate("/reservations"));
           } catch (err) {
             cancelStepRef.current   = CANCEL_STEP.NONE;
             cancelTargetRef.current = null;
@@ -188,8 +188,8 @@ export default function useVoiceCommands(navigate) {
           const dateStr   = startTime.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
           setVoiceStatus("idle");
-          setDisplayTranscript(`Found: ${matched.room_name} on ${dateStr} from ${timeStr}. Say yes to cancel or no to keep it.`);
-          speak(`I found your reservation for ${matched.room_name} on ${dateStr} from ${timeStr}. Are you sure you want to cancel it? Say yes or no.`);
+          setDisplayTranscript(`Found: ${matched.room_name} on ${dateStr} from ${timeStr}. Say YES to cancel or NO to keep it.`);
+          speak(`I found your reservation for ${matched.room_name} on ${dateStr} from ${timeStr}. Are you sure you want to cancel it?`);
           processingRef.current = false;
           resetTranscript();
           return;
@@ -263,7 +263,7 @@ export default function useVoiceCommands(navigate) {
         }
         cancelStepRef.current = CANCEL_STEP.AWAITING;
         setVoiceStatus("idle");
-        setDisplayTranscript("Tell me the room and date of the reservation you want to cancel.");
+        setDisplayTranscript("Tell me the ROOM and DATE of the reservation you want to cancel.");
         speak("Sure! Just tell me the room and date of the reservation you'd like to cancel.");
         processingRef.current = false;
         resetTranscript();
