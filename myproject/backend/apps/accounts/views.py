@@ -49,7 +49,8 @@ class RegisterView(generics.CreateAPIView):
             data={
                 "id": user.id,
                 "username": user.username,
-                "role": user.role
+                "role": user.role,
+                "email": user.email
             }
         ))
 
@@ -69,7 +70,8 @@ class ProfileView(APIView):
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "role": user.role
+                "role": user.role,
+                "email": user.email
             }
         ))
 class CustomLoginView(TokenObtainPairView):
@@ -89,7 +91,8 @@ class CustomLoginView(TokenObtainPairView):
                 "user": {
                     "id": user.id,
                     "username": user.username,
-                    "role": user.role
+                    "role": user.role,
+                    "email": user.email
                 }
             }
         ))
